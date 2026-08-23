@@ -1,0 +1,315 @@
+// AI University Africa - Phase 2 Prisma schema
+// Datasource: MySQL 8 (managed, co-located with app on DigitalOcean)
+// Generator: Prisma Client (TypeScript)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum School {
+  FOUNDATIONS
+  BUSINESS
+  CONTENT
+  CAREERS
+  PROFESSIONALS
+  BUILDERS
+  AFRICAN_AI
+  INSTRUCTOR_TRACK
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  REVOKED
+}
+
+enum PaymentProvider {
+  PAYSTACK
+  FLUTTERWAVE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum QuestionType {
+  MCQ
+  SHORT_ANSWER
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  GRADED
+}
+
+enum CertificateStatus {
+  VALID
+  REVOKED
+}
+
+// ---------------------------------------------------------------------------
+// USERS & AUTH
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          Role      @default(STUDENT)
+  bio           String?   @db.Text        // instructors
+  photoUrl      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  coursesOwned  Course[]        @relation("InstructorCourses")
+  enrollments   Enrollment[]
+  payments      Payment[]
+  submissions   Submission[]
+  certificates  Certificate[]
+  gradedSubmissions Submission[] @relation("Grader")
+
+  @@index([role])
+}
+
+// ---------------------------------------------------------------------------
+// COURSES / MODULES / LESSONS
+// ---------------------------------------------------------------------------
+
+model Course {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  description   String        @db.Text
+  outcomes      String        @db.Text
+  school        School
+  priceKobo     Int                          // price in kobo (NGN minor unit)
+  status        CourseStatus  @default(DRAFT)
+  instructorId  String
+  instructor    User          @relation("InstructorCourses", fields: [instructorId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  modules       Module[]
+  enrollments   Enrollment[]
+  certificates  Certificate[]
+  cohorts       Cohort[]
+
+  @@index([school])
+  @@index([status])
+  @@index([instructorId])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  order       Int
+  videoUrl    String?                       // Vimeo/YouTube unlisted embed
+  pdfUrl      String?                       // downloadable per-module PDF
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quiz          Quiz?
+  progress      ModuleProgress[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+}
+
+// ---------------------------------------------------------------------------
+// ENROLLMENT & PROGRESS
+// ---------------------------------------------------------------------------
+
+model Enrollment {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  courseId    String
+  course      Course            @relation(fields: [courseId], references: [id])
+  status      EnrollmentStatus  @default(ACTIVE)
+  percent     Int               @default(0)   // 0..100
+  paymentId   String?           @unique
+  payment     Payment?          @relation(fields: [paymentId], references: [id])
+  enrolledAt  DateTime          @default(now())
+  completedAt DateTime?
+
+  moduleProgress ModuleProgress[]
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model ModuleProgress {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  moduleId     String
+  module       Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completed    Boolean    @default(false)
+  completedAt  DateTime?
+
+  @@unique([enrollmentId, moduleId])
+  @@index([moduleId])
+}
+
+// ---------------------------------------------------------------------------
+// PAYMENTS
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  courseId      String
+  provider      PaymentProvider
+  status        PaymentStatus   @default(PENDING)
+  amountKobo    Int
+  reference     String          @unique       // gateway reference
+  receiptUrl    String?
+  attempts      Int             @default(1)    // supports retry flow
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  enrollment    Enrollment?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// ASSESSMENT ENGINE
+// ---------------------------------------------------------------------------
+
+model Quiz {
+  id         String     @id @default(cuid())
+  moduleId   String     @unique
+  module     Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title      String
+  passMark   Int        @default(70)          // percent required to pass
+
+  questions  Question[]
+  submissions Submission[]
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  quizId      String
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type        QuestionType
+  prompt      String       @db.Text
+  order       Int
+  options     Option[]                          // MCQ only
+  modelAnswer String?      @db.Text            // short-answer reference (instructor view)
+  answers     Answer[]
+
+  @@index([quizId])
+}
+
+model Option {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean  @default(false)
+
+  @@index([questionId])
+}
+
+model Submission {
+  id          String            @id @default(cuid())
+  quizId      String
+  quiz        Quiz              @relation(fields: [quizId], references: [id])
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  status      SubmissionStatus  @default(SUBMITTED)
+  autoScore   Int?                            // MCQ auto-graded percent
+  finalScore  Int?                            // after manual grading if any
+  passed      Boolean?
+  fileUrl     String?                         // file-upload assignment
+  gradedById  String?
+  gradedBy    User?             @relation("Grader", fields: [gradedById], references: [id])
+  submittedAt DateTime          @default(now())
+  gradedAt    DateTime?
+
+  answers     Answer[]
+
+  @@index([quizId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Answer {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question   @relation(fields: [questionId], references: [id])
+  selectedOptionId String?                    // MCQ
+  textAnswer   String?    @db.Text            // short-answer
+  awardedMark  Int?                           // per-question mark after grading
+
+  @@index([submissionId])
+  @@index([questionId])
+}
+
+// ---------------------------------------------------------------------------
+// CERTIFICATES
+// ---------------------------------------------------------------------------
+
+model Certificate {
+  id             String            @id @default(cuid())
+  verificationId String            @unique      // public lookup key
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  courseId       String
+  course         Course            @relation(fields: [courseId], references: [id])
+  pdfUrl         String
+  status         CertificateStatus @default(VALID)
+  issuedAt       DateTime          @default(now())
+  revokedAt      DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// LIVE CLASSES (link-only, no scheduling engine in Phase 2)
+// ---------------------------------------------------------------------------
+
+model Cohort {
+  id         String   @id @default(cuid())
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name       String
+  meetingUrl String                           // pasted Zoom/Meet link
+  startsAt   DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([courseId])
+}
