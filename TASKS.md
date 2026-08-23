@@ -66,11 +66,14 @@ verified (build/lint/manual check). Unchecked = not started.
 
 ## 7. Instructor (PRD §3.7, Webflow §6)
 
-- [ ] `/instructor` — real own-courses list (draft/published), students-count, grading-queue summary
-- [ ] `/instructor/courses/[id]` — course meta editor, module add/reorder (video URL, PDF, quiz), own-students progress view
-- [ ] Quiz/question/option builder UI
-- [ ] Ownership check on every read/write (`Course.instructorId === session.user.id`)
-- [ ] Admin approval path: role upgrade STUDENT → INSTRUCTOR (admin-only action, PRD §2)
+- [x] `/instructor` — real own-courses list w/ status/price/student count, grading-queue count, create-course form (always starts DRAFT)
+- [x] `/instructor/courses/[id]` — course meta editor (title/school/price/status/description/outcomes), module add/edit/delete/reorder (video URL, PDF), own-students progress view, grading queue with per-submission grade form
+- [x] Quiz/question/option builder UI — add quiz per module, add MCQ (up to 4 options + correct index) or short-answer questions, delete questions
+- [x] Ownership check on every read/write — `requireOwnedCourse()` helper in `actions.ts`, re-checked in every single action (not just the page)
+- [ ] Admin approval path: role upgrade STUDENT → INSTRUCTOR (admin-only action, PRD §2) — deferred to Phase 8 (Admin Users tab)
+- [x] **Verified against the real DB** (scratch script, not committed): module reorder via the temp-order swap (dodges the `@@unique([courseId, order])` constraint) works correctly; deleting one module doesn't touch a sibling module's quiz; grading a short-answer submission correctly triggers module completion + enrollment recompute to 100%
+- [x] **Found + fixed a real schema bug during this verification**: `Submission.quiz` and `Answer.question` had no `onDelete: Cascade` (unlike every other parent-child relation in the schema), so deleting a module/quiz/question with any student submission threw a raw FK error. Added the missing cascades (migration `20260823224758_cascade_submission_answer_deletes`) and documented it in `docs/DATABASE_SCHEMA.md` §6. Confirmed `Enrollment.course`/`Certificate.course` staying `Restrict` is correct as-is (no app code ever deletes a course - archive/revoke are the real lifecycle actions)
+- [x] Also added `User.isActive` (`Boolean @default(true)`, migration `20260823224232_add_user_is_active`) per user decision — wired into `authorize()` (blocks login) and `requireRole()` (re-checked every protected page load since JWT sessions are stateless)
 
 ## 8. Admin (PRD §3.7, Webflow §7)
 

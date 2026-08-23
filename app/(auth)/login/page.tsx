@@ -13,12 +13,19 @@ export default function LoginPage() {
   );
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "";
+  const deactivated = searchParams.get("deactivated") === "1";
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Log in</h1>
       </div>
+
+      {deactivated && (
+        <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">
+          Your account has been deactivated. Contact an admin for help.
+        </p>
+      )}
 
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="callbackUrl" value={callbackUrl} />

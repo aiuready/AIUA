@@ -83,6 +83,7 @@ model User {
   role          Role      @default(STUDENT)
   bio           String?   @db.Text        // instructors
   photoUrl      String?
+  isActive      Boolean   @default(true)  // admin deactivate (PRD §2 Admin "manage ... users")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -244,7 +245,7 @@ model Option {
 model Submission {
   id          String            @id @default(cuid())
   quizId      String
-  quiz        Quiz              @relation(fields: [quizId], references: [id])
+  quiz        Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade)
   userId      String
   user        User              @relation(fields: [userId], references: [id])
   status      SubmissionStatus  @default(SUBMITTED)
@@ -269,7 +270,7 @@ model Answer {
   submissionId String
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   questionId   String
-  question     Question   @relation(fields: [questionId], references: [id])
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
   selectedOptionId String?                    // MCQ
   textAnswer   String?    @db.Text            // short-answer
   awardedMark  Int?                           // per-question mark after grading

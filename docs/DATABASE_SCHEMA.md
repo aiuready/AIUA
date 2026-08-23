@@ -75,4 +75,25 @@ verificationId is a unique public key. The public /verify page reads it with no 
 - Instantiate one shared Prisma client (singleton) to avoid connection exhaustion.
 - Seed an initial ADMIN user and the eight school values are enum-fixed, so no seed needed for schools.
 
+## 6. Implementation deviations from this reference (see also TASKS.md)
+
+Two small additive changes were made to `prisma/schema.prisma` during
+build, both driven by real gaps found while implementing/verifying against
+the running app - documented here since this reference predates them:
+
+- **`User.isActive`** (`Boolean @default(true)`) - added to support the
+  PRD §2 admin "deactivate" user capability, which had no backing field.
+- **`onDelete: Cascade`** added to `Submission.quiz` and `Answer.question`
+  (previously unset, defaulting to Restrict) - without this, deleting a
+  module/quiz/question that had any student submission threw a foreign-key
+  error instead of cascading, inconsistent with every other parent-child
+  relation in this schema (Module→Quiz, Quiz→Question, Question→Option all
+  already cascaded). Found via an end-to-end smoke test, not by inspection.
+
+`Enrollment.course` and `Certificate.course` intentionally remain
+`Restrict` (not cascade) - no app code ever deletes a Course (the product
+lifecycle is publish/archive, and certificates are revoked, not deleted),
+so a course with real enrollments or issued certificates correctly refuses
+to be deleted outright.
+
 *End of schema reference. Authoritative model is `prisma/schema.prisma`.*
