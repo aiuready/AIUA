@@ -1,6 +1,8 @@
 import { PagePlaceholder } from "@/components/page-placeholder";
+import { requireRole } from "@/lib/require-role";
 
-export default function StudentCertificatesPage() {
+export default async function StudentCertificatesPage() {
+  await requireRole(["STUDENT"]);
   return (
     <PagePlaceholder
       title="My certificates"

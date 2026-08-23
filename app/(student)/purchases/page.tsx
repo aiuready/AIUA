@@ -1,8 +1,10 @@
 import { PagePlaceholder } from "@/components/page-placeholder";
+import { requireRole } from "@/lib/require-role";
 
 // Transaction list: course, amount, status, date, receipt link.
 // Failed items show a Retry action (reuses the same Payment.attempts flow).
-export default function PurchasesPage() {
+export default async function PurchasesPage() {
+  await requireRole(["STUDENT"]);
   return (
     <PagePlaceholder
       title="Purchases"

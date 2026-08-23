@@ -1,0 +1,24 @@
+# Local dev only. Production is DigitalOcean Managed MySQL, co-located with
+# the app (TRD §4) - this just mirrors the same MySQL 8 engine locally.
+services:
+  mysql:
+    image: mysql:8
+    container_name: aiua_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: aiua_dev_root
+      MYSQL_DATABASE: aiua
+      MYSQL_USER: aiua
+      MYSQL_PASSWORD: aiua_dev
+    ports:
+      - "3306:3306"
+    volumes:
+      - aiua_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-paiua_dev_root"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  aiua_mysql_data:

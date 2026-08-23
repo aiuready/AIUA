@@ -1,4 +1,5 @@
 import { PagePlaceholder } from "@/components/page-placeholder";
+import { requireRole } from "@/lib/require-role";
 
 // Course editor + grading queue. Instructor sees only their own courses and
 // students - enforce Course.instructorId === session.user.id server-side on
@@ -8,6 +9,7 @@ export default async function InstructorCourseEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireRole(["INSTRUCTOR"]);
   const { id } = await params;
   return (
     <PagePlaceholder

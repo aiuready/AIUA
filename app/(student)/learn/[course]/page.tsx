@@ -1,4 +1,5 @@
 import { PagePlaceholder } from "@/components/page-placeholder";
+import { requireRole } from "@/lib/require-role";
 
 // Learning experience. Mobile: module list collapses into a drawer, active
 // module fills the screen (video -> PDF -> quiz), progress bar pinned at
@@ -10,6 +11,7 @@ export default async function LearnPage({
 }: {
   params: Promise<{ course: string }>;
 }) {
+  await requireRole(["STUDENT"]);
   const { course } = await params;
   return (
     <PagePlaceholder
