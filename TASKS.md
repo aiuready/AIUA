@@ -38,25 +38,31 @@ verified (build/lint/manual check). Unchecked = not started.
 - [x] Retry-payment action — `app/api/payments/retry/route.ts`, reuses the Payment row + reference, increments `attempts`
 - [x] Receipt: `lib/receipts.ts` (pdf-lib) + `lib/storage.ts` (Spaces/S3, dev fallback writes to `public/uploads/`)
 - [ ] **Not yet runtime-verified against real gateways** — PAYSTACK_SECRET_KEY/FLUTTERWAVE_SECRET_KEY are still placeholders; route existence, DB writes, and error-path handling are verified, but the actual hosted-checkout redirect and webhook payloads need real test keys before this can be called done
+- [x] `/purchases` — real transaction list + receipt link + Retry (posts to `/api/payments/retry`), `app/(student)/purchases/page.tsx`
+- [x] `/dashboard` — real continue-learning card + enrolled courses list + certificates/purchases links, `app/(student)/dashboard/page.tsx`
 
 ## 4. Learning experience (PRD §3.4)
 
-- [ ] `/learn/[course]` — real module list + drawer, video embed, PDF download, quiz entry, progress bar
-- [ ] Mark-complete action — updates `ModuleProgress`, recomputes `Enrollment.percent`
-- [ ] Cohort/live-class link display when a Cohort exists for the course
+- [x] `/learn/[course]` — real module list, video embed (YouTube/Vimeo URL → embed via `lib/video-embed.ts`), PDF download link, quiz entry, progress bar. Module list is a simple list, not a true mobile drawer overlay — noted as a UI-polish gap, not a data gap
+- [x] Mark-complete action — `app/(student)/learn/[course]/actions.ts`, updates `ModuleProgress` + `lib/progress.ts` recomputes `Enrollment.percent`
+- [x] Cohort/live-class link display when a Cohort exists for the course
 
 ## 5. Assessment engine (PRD §3.5)
 
-- [ ] Quiz-taking UI (MCQ + short-answer) + `POST` submission endpoint
-- [ ] Auto-grade MCQ from `Option.isCorrect` into `Submission.autoScore`
-- [ ] Instructor grading queue (short-answer/file submissions) + grading action → `finalScore`, `passed`
+- [x] Quiz-taking UI (MCQ + short-answer) + `submitQuizAction` server action — `app/(student)/learn/[course]/actions.ts`
+- [x] Auto-grade MCQ-only quizzes from `Option.isCorrect` into `Submission.autoScore`/`finalScore`/`passed`; module only completes on a pass
+- [x] Quizzes with any short-answer question stay `SUBMITTED` for instructor grading — the queue/grading UI itself is Phase 7 (Instructor), not built yet
+- [ ] Instructor grading queue UI + grading action → `finalScore`, `passed` (deferred to Phase 7)
 
 ## 6. Certificates (PRD §3.6)
 
-- [ ] Server action: on `Enrollment.percent` reaching 100, generate certificate PDF (pdf-lib), upload to storage, create `Certificate` row with `verificationId`
-- [ ] `/certificates` — real list + Download PDF
-- [ ] Admin revoke action (`/admin`) — flips `status` to `REVOKED`, sets `revokedAt`
-- [ ] `/verify` — wire the existing `PagePlaceholder` to the real form + `/api/certificates/verify` (already implemented)
+- [x] `lib/certificates.ts` — on `Enrollment.percent` reaching 100 (`lib/progress.ts`), generates certificate PDF (pdf-lib), uploads via `lib/storage.ts`, creates `Certificate` row with a random `verificationId`. Idempotent (skips if a VALID cert already exists)
+- [x] `/certificates` — real list + Download PDF, `app/(student)/certificates/page.tsx`
+- [ ] Admin revoke action (`/admin`) — flips `status` to `REVOKED`, sets `revokedAt` (Phase 8, needs the admin UI)
+- [x] `/api/certificates/verify` — already implemented and now exercised (see verification below)
+- [x] `/verify` — real form wired to the API, VALID/REVOKED/NOT_FOUND states, `app/(public)/verify/page.tsx`
+- [x] **Verified end-to-end against the real DB** (scratch script, not committed): enroll → complete no-quiz module (percent 50) → wrong quiz answer correctly blocks completion (still 50) → correct answer auto-grades pass → percent 100, status COMPLETED → certificate row created, valid PDF file written (1.7 PDF, non-zero bytes) → public verify-by-verificationId returns VALID with correct holder name → admin-style revoke flips it to REVOKED
+- [x] Found + fixed a real bug during this verification: `.env`'s `"..."` placeholders for STORAGE_*/PAYSTACK_*/FLUTTERWAVE_* were truthy, so `lib/storage.ts` tried calling real AWS S3 with garbage credentials instead of using its dev fallback. Fixed by leaving those vars empty in `.env` (not `"..."`) and hardened `uploadFile` to catch a real-storage failure and fall back to local disk instead of throwing
 
 ## 7. Instructor (PRD §3.7, Webflow §6)
 

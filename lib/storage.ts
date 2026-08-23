@@ -34,17 +34,24 @@ export async function uploadFile(
   contentType: string
 ): Promise<string> {
   if (hasRealStorage) {
-    const s3 = getClient();
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.STORAGE_BUCKET!,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-        ACL: "public-read",
-      })
-    );
-    return `${process.env.STORAGE_ENDPOINT}/${process.env.STORAGE_BUCKET}/${key}`;
+    try {
+      const s3 = getClient();
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.STORAGE_BUCKET!,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+          ACL: "public-read",
+        })
+      );
+      return `${process.env.STORAGE_ENDPOINT}/${process.env.STORAGE_BUCKET}/${key}`;
+    } catch (err) {
+      // Never let a storage misconfiguration take down checkout/certificate
+      // issuance outright (Webflow §8: "never a blank page on failure") -
+      // fall through to the local write below and surface the error in logs.
+      console.error("uploadFile: Spaces upload failed, falling back to local disk:", err);
+    }
   }
 
   const filePath = path.join(process.cwd(), "public", "uploads", key);
