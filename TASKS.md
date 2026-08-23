@@ -89,22 +89,24 @@ verified (build/lint/manual check). Unchecked = not started.
 
 ## 9. Cross-cutting / NFRs (PRD §4, TRD §5)
 
-- [ ] Input validation on every mutation (zod schemas)
-- [ ] Error monitoring/logging (e.g. Sentry) wired before go-live
-- [ ] Loading + error states on every data screen (Webflow §8)
-- [ ] Empty states for every list (Webflow §8)
-- [ ] Responsive QA pass (mobile/tablet/desktop)
-- [ ] Basic pen-test checklist pass
+- [x] Input validation: zod on every user-facing form that creates/renames a record (signup, reset, course create/update); enum fields elsewhere (course status, user role, question type) are validated against a literal allow-list before use. Not every micro-action (module reorder direction, grade score clamping) uses a full zod schema — those use direct bounds-checking instead, which is equivalent for their risk level, not a gap
+- [x] Loading + error states — `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx` added as baseline boundaries (Webflow §8); route-specific loading.tsx overrides for slower pages (course catalog, admin) are a possible follow-up, not required for correctness
+- [x] Empty states — every list in the app already had a "No X yet" message from when each page was built (catalog, dashboard, certificates, purchases, instructor courses, grading queue, admin sections)
+- [ ] Error monitoring/logging (e.g. Sentry) — **needs an account/DSN I don't have**; not attempted
+- [ ] Responsive QA pass (mobile/tablet/desktop) — only verified functionally (curl, DB state), never visually in a browser at real viewport widths; the CSS is written mobile-first per Webflow §1 but unverified visually
+- [ ] Basic pen-test checklist — not run; would need a defined checklist and either manual review or a scanning tool
 
 ## 10. Deployment (TRD §4)
 
-- [ ] DigitalOcean Managed MySQL provisioned, same region as app
-- [ ] App deployed as long-running container on DO App Platform/Droplet
-- [ ] DigitalOcean Spaces bucket provisioned, wired to `lib/storage.ts`
+**Everything in this section needs accounts/access I don't have — a DigitalOcean account, a domain via WhoGoHost, and budget decisions. None of it was attempted. What's ready on the code side:**
+
+- [ ] DigitalOcean Managed MySQL provisioned, same region as app — schema/migrations are ready to point at it via `DATABASE_URL`
+- [ ] App deployed as long-running container on DO App Platform/Droplet — app has no serverless-specific code, Prisma client is already a singleton (`lib/prisma.ts`) per TRD §4.3
+- [ ] DigitalOcean Spaces bucket provisioned, wired to `lib/storage.ts` — code already branches on `STORAGE_*` env vars being present, no code change needed once a bucket exists
 - [ ] Cloudflare in front, DNS via WhoGoHost
 - [ ] Staging environment mirroring production
 - [ ] Daily DB backups + tested restore path
-- [ ] `prisma migrate deploy` in the deploy pipeline (never hand-edit prod DB)
+- [ ] `prisma migrate deploy` in the deploy pipeline (never hand-edit prod DB) — `prisma migrate dev` has been the dev-only command throughout; `deploy` is the production variant, not yet exercised against a real target
 
 ---
 
@@ -112,3 +114,6 @@ verified (build/lint/manual check). Unchecked = not started.
 - Prisma pinned to 6.x, not 7.x — see `project_aiua_phase2` memory / README.
 - Password reset: stateless signed token, not a new DB table — keeps `schema.prisma` verbatim.
 - Local dev DB: MySQL 8 via Docker — mirrors the TRD's MySQL 8 engine choice even though prod is DO Managed MySQL.
+- `User.isActive` added to schema (user-approved) for admin deactivate — see Phase 7.
+- `onDelete: Cascade` added to `Submission.quiz`/`Answer.question` — real bug fix, see `docs/DATABASE_SCHEMA.md` §6.
+- `Enrollment.course`/`Certificate.course` deliberately stay `Restrict` — no app code deletes a course.
