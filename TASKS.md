@@ -23,19 +23,21 @@ verified (build/lint/manual check). Unchecked = not started.
 
 ## 2. Public (PRD §3.2, Webflow §3)
 
-- [ ] `/` — real featured courses + schools strip from DB
-- [ ] `/courses` — real published-course listing, school filter (chip row)
-- [ ] `/courses/[slug]` — real detail page (description, modules, outcomes, instructor, price, Enroll CTA)
-- [ ] `/about` — static content
+- [x] `/` — real featured courses + schools strip from DB
+- [x] `/courses` — real published-course listing, school filter (chip row, `?school=`)
+- [x] `/courses/[slug]` — real detail page (description, modules, outcomes, instructor, price, Enroll CTA); draft/archived gated to owner instructor/admin via `notFound()`
+- [x] `/about` — static content
+- [x] Verified: `/`, `/courses`, `/courses?school=BUSINESS`, `/courses/ai-foundations` (200), `/courses/does-not-exist` (404), unauthenticated CTA shows "Log in to enroll" — curl against running dev server + seeded DB
 
 ## 3. Enrollment & Payments (PRD §3.3, TRD §3)
 
-- [ ] `POST /api/checkout` — creates PENDING Payment, initializes gateway transaction (Paystack or Flutterwave), returns redirect URL
-- [ ] Paystack integration (`lib/payments/paystack.ts`) — initialize + server-side verify
-- [ ] Flutterwave integration (`lib/payments/flutterwave.ts`) — initialize + server-side verify
-- [ ] Complete the two webhook handlers: on verified success, create/activate Enrollment tied to the Payment, mark receipt
-- [ ] Retry-payment action (reuses `attempts` counter, same course context, no re-enrollment) — PRD §3.3
-- [ ] Receipt record retrievable by student + admin
+- [x] `POST /api/checkout` — creates PENDING Payment, initializes gateway transaction, redirects to hosted checkout — `app/api/checkout/route.ts`
+- [x] Paystack integration — `lib/payments/paystack.ts` (initialize + server-side verify; amounts in kobo)
+- [x] Flutterwave integration — `lib/payments/flutterwave.ts` (initialize + server-side verify; amounts in naira, converted from kobo)
+- [x] Webhook handlers + `GET /api/payments/callback` (best-effort instant UX) both call shared `lib/payments/complete-payment.ts` — idempotent, creates/activates Enrollment, generates + uploads receipt
+- [x] Retry-payment action — `app/api/payments/retry/route.ts`, reuses the Payment row + reference, increments `attempts`
+- [x] Receipt: `lib/receipts.ts` (pdf-lib) + `lib/storage.ts` (Spaces/S3, dev fallback writes to `public/uploads/`)
+- [ ] **Not yet runtime-verified against real gateways** — PAYSTACK_SECRET_KEY/FLUTTERWAVE_SECRET_KEY are still placeholders; route existence, DB writes, and error-path handling are verified, but the actual hosted-checkout redirect and webhook payloads need real test keys before this can be called done
 
 ## 4. Learning experience (PRD §3.4)
 

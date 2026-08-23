@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local dev fallback for lib/storage.ts when Spaces creds aren't set
+/public/uploads/

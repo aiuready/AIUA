@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { completeSuccessfulPayment } from "@/lib/payments/complete-payment";
 
 // Flutterwave webhook. Signature-verified (TRD §3, §5) via the verif-hash
-// header, compared against FLUTTERWAVE_WEBHOOK_SECRET. Handling must be
-// idempotent - duplicate deliveries of the same event should not
-// double-apply an enrollment.
+// header, compared against FLUTTERWAVE_WEBHOOK_SECRET. Handling is
+// idempotent - completeSuccessfulPayment no-ops if the Payment is already
+// SUCCESS, so duplicate deliveries are safe.
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("verif-hash");
 
@@ -17,13 +17,7 @@ export async function POST(req: NextRequest) {
   if (event.event === "charge.completed" && event.data?.status === "successful") {
     const reference = event.data?.tx_ref as string | undefined;
     if (reference) {
-      await prisma.payment.updateMany({
-        where: { reference, status: "PENDING" },
-        data: { status: "SUCCESS" },
-      });
-      // TODO: create/activate the Enrollment linked to this payment,
-      // generate the receipt, and trigger access grant. See
-      // docs/DATABASE_SCHEMA.md §3.2-3.3.
+      await completeSuccessfulPayment(reference);
     }
   }
 

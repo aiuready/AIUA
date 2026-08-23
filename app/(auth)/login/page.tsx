@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormField } from "@/components/form-field";
 import { loginAction, type LoginState } from "./actions";
@@ -10,6 +11,8 @@ export default function LoginPage() {
     loginAction,
     undefined
   );
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") ?? "";
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
@@ -18,6 +21,7 @@ export default function LoginPage() {
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <FormField label="Email" name="email" type="email" autoComplete="email" />
         <FormField
           label="Password"

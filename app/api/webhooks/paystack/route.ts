@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { completeSuccessfulPayment } from "@/lib/payments/complete-payment";
 
 // Paystack webhook. Signature-verified (TRD §3, §5) via the
 // x-paystack-signature header, HMAC-SHA512 over the raw body using
-// PAYSTACK_SECRET_KEY. Handling must be idempotent - duplicate deliveries
-// of the same event should not double-apply an enrollment.
+// PAYSTACK_SECRET_KEY. Handling is idempotent - completeSuccessfulPayment
+// no-ops if the Payment is already SUCCESS, so duplicate deliveries are safe.
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-paystack-signature");
@@ -24,15 +24,7 @@ export async function POST(req: NextRequest) {
   if (event.event === "charge.success") {
     const reference = event.data?.reference as string | undefined;
     if (reference) {
-      // Idempotent: only flips PENDING -> SUCCESS, a second delivery of the
-      // same event is a no-op because the row is already SUCCESS.
-      await prisma.payment.updateMany({
-        where: { reference, status: "PENDING" },
-        data: { status: "SUCCESS" },
-      });
-      // TODO: create/activate the Enrollment linked to this payment,
-      // generate the receipt, and trigger access grant. See
-      // docs/DATABASE_SCHEMA.md §3.2-3.3.
+      await completeSuccessfulPayment(reference);
     }
   }
 

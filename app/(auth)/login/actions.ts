@@ -13,6 +13,7 @@ export async function loginAction(
 ): Promise<LoginState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const callbackUrl = String(formData.get("callbackUrl") ?? "");
   if (!email || !password) {
     return { error: "Email and password are required." };
   }
@@ -29,6 +30,10 @@ export async function loginAction(
     return { error: "Invalid email or password." };
   }
 
+  // Only ever redirect to a same-origin relative path - never trust an
+  // absolute/external callbackUrl (open-redirect guard).
+  const safeCallback = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//");
+
   const user = await prisma.user.findUnique({ where: { email }, select: { role: true } });
-  redirect(user ? roleHome(user.role) : "/dashboard");
+  redirect(safeCallback ? callbackUrl : user ? roleHome(user.role) : "/dashboard");
 }
