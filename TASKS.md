@@ -77,12 +77,15 @@ verified (build/lint/manual check). Unchecked = not started.
 
 ## 8. Admin (PRD §3.7, Webflow §7)
 
-- [ ] `/admin` — Courses tab: publish/unpublish/archive across all instructors
-- [ ] Users tab: list, search, role change. **"Deactivate" has no schema field** — needs a decision (add `isActive` to User, or treat REVOKED enrollments as the only lever) before building
-- [ ] Payments tab: transactions, statuses, receipts, refund action (flips to `REFUNDED` — gateway-side refund call is out of scope unless gateway supports API refund)
-- [ ] Certificates tab: issue/revoke
-- [ ] Reporting: basic revenue (sum of SUCCESS payments) + enrollment counts
-- [ ] Mobile: stacked-card table treatment (Webflow §7 mobile pattern)
+- [x] `/admin` — Courses section: publish/unpublish/archive across all instructors, `setCourseStatusAction`
+- [x] Users section: list, search (`?q=` on name/email), role change (`updateUserRoleAction` — also the STUDENT→INSTRUCTOR approval path noted as deferred in Phase 7), deactivate/reactivate (`toggleUserActiveAction`, blocks self-deactivation)
+- [x] Payments section: transactions, statuses, receipts, refund action (`refundPaymentAction`, flips to `REFUNDED`; gateway-side refund API call is explicitly out of scope — this only updates our own record)
+- [x] Certificates section: revoke (`revokeCertificateAction`) + a "completed but missing a certificate" utility list with a manual issue action (`issueCertificateAction`) for the data-repair edge case
+- [x] Reporting: total revenue (sum of SUCCESS payments), active enrollment count, course count, user count
+- [x] Single `/admin` route per the Webflow route map, sectioned with in-page anchors rather than sub-routes; each section is a stacked list (mobile-first single column) rather than a table, so no separate mobile treatment was needed
+- [x] **Verified against the real DB** (scratch script, not committed): course status change, role change, deactivate/reactivate, self-deactivate guard condition, deactivated-user login block, refund, certificate revoke, and the missing-certificate detection logic (correctly does NOT re-flag a pair with a REVOKED cert as "missing" — a revoke is deliberate, not a gap)
+- [x] Caught + fixed a real logic bug while building this: the initial "completed but missing a certificate" query used a course-level `certificates: { none }` Prisma filter, which would have wrongly excluded a student's completed enrollment just because *some other student* on the same course already had a certificate. Replaced with an application-level filter against the exact (userId, courseId) pairs
+- [x] DB confirmed back to clean seeded state after all three phases' verification scripts (3 users, 3 courses, 0 leftover enrollments/payments/certificates)
 
 ## 9. Cross-cutting / NFRs (PRD §4, TRD §5)
 

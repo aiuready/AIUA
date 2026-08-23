@@ -1,18 +1,281 @@
-import { PagePlaceholder } from "@/components/page-placeholder";
 import { requireRole } from "@/lib/require-role";
+import { prisma } from "@/lib/prisma";
+import { formatNaira } from "@/lib/money";
+import {
+  setCourseStatusAction,
+  updateUserRoleAction,
+  toggleUserActiveAction,
+  refundPaymentAction,
+  revokeCertificateAction,
+  issueCertificateAction,
+} from "./actions";
 
-// Courses (publish/unpublish/archive), Users (role changes), Payments
-// (refunds), Certificates (issue/revoke), basic revenue/enrollment
-// reporting. Requires ADMIN role. Mobile: tables become stacked cards.
-// See docs/WEBFLOW.md §7.
-export default async function AdminDashboardPage() {
+// Admin dashboard (Webflow §7): courses, users, payments, certificates,
+// reporting. Single route per the Webflow route map - sectioned with
+// anchors rather than sub-routes.
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; saved?: string; error?: string }>;
+}) {
   await requireRole(["ADMIN"]);
+  const { q, saved, error } = await searchParams;
+
+  const [revenue, activeEnrollments, courseCount, userCount] = await Promise.all([
+    prisma.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amountKobo: true } }),
+    prisma.enrollment.count({ where: { status: { in: ["ACTIVE", "COMPLETED"] } } }),
+    prisma.course.count(),
+    prisma.user.count(),
+  ]);
+
+  const courses = await prisma.course.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { instructor: { select: { name: true } } },
+  });
+
+  const users = await prisma.user.findMany({
+    where: q
+      ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] }
+      : undefined,
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
+  const payments = await prisma.payment.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    include: { user: { select: { name: true, email: true } } },
+  });
+  const courseTitleById = new Map(
+    (
+      await prisma.course.findMany({
+        where: { id: { in: [...new Set(payments.map((p) => p.courseId))] } },
+        select: { id: true, title: true },
+      })
+    ).map((c) => [c.id, c.title])
+  );
+
+  const certificates = await prisma.certificate.findMany({
+    orderBy: { issuedAt: "desc" },
+    include: { user: { select: { name: true } }, course: { select: { title: true } } },
+  });
+
+  // "No certificate for this exact user+course" isn't a single clean
+  // Prisma relation filter (a course-level `certificates: none` would
+  // wrongly exclude a completed enrollment just because some *other*
+  // student on the same course has a certificate) - filter in application
+  // code against the certificates already loaded above instead.
+  const completedEnrollments = await prisma.enrollment.findMany({
+    where: { status: "COMPLETED" },
+    include: { user: { select: { name: true } }, course: { select: { title: true } } },
+  });
+  const certifiedPairs = new Set(certificates.map((c) => `${c.userId}:${c.courseId}`));
+  const missingCertificates = completedEnrollments.filter(
+    (e) => !certifiedPairs.has(`${e.userId}:${e.courseId}`)
+  );
+
   return (
-    <PagePlaceholder
-      title="Admin"
-      route="/admin"
-      access="Admin"
-      note="Courses, users, payments, certificates, reporting. See docs/WEBFLOW.md §7."
-    />
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-10 px-4 py-10 sm:max-w-4xl">
+      <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+      {saved === "1" && <p className="text-sm text-green-700">Saved.</p>}
+      {error === "self" && (
+        <p className="text-sm text-red-600">You can&rsquo;t deactivate your own account.</p>
+      )}
+
+      <nav className="flex gap-4 text-sm font-medium underline">
+        <a href="#reporting">Reporting</a>
+        <a href="#courses">Courses</a>
+        <a href="#users">Users</a>
+        <a href="#payments">Payments</a>
+        <a href="#certificates">Certificates</a>
+      </nav>
+
+      {/* --- Reporting --- */}
+      <section id="reporting" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Reporting</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Revenue" value={formatNaira(revenue._sum.amountKobo ?? 0)} />
+          <Stat label="Active enrollments" value={String(activeEnrollments)} />
+          <Stat label="Courses" value={String(courseCount)} />
+          <Stat label="Users" value={String(userCount)} />
+        </div>
+      </section>
+
+      {/* --- Courses --- */}
+      <section id="courses" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Courses ({courses.length})
+        </h2>
+        <div className="flex flex-col gap-2">
+          {courses.map((c) => (
+            <div key={c.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">{c.title}</p>
+                <p className="text-xs text-neutral-500">
+                  {c.instructor.name} · {formatNaira(c.priceKobo)}
+                </p>
+              </div>
+              <form action={setCourseStatusAction} className="flex items-center gap-2">
+                <input type="hidden" name="courseId" value={c.id} />
+                <select name="status" defaultValue={c.status} className="rounded-lg border border-neutral-300 px-3 py-2 text-xs">
+                  <option value="DRAFT">Draft</option>
+                  <option value="PUBLISHED">Published</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
+                <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                  Update
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- Users --- */}
+      <section id="users" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Users ({users.length})
+        </h2>
+        <form className="flex gap-2">
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search name or email"
+            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+            Search
+          </button>
+        </form>
+        <div className="flex flex-col gap-2">
+          {users.map((u) => (
+            <div key={u.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {u.name} {!u.isActive && <span className="text-red-600">(deactivated)</span>}
+                </p>
+                <p className="text-xs text-neutral-500">{u.email}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <form action={updateUserRoleAction} className="flex items-center gap-2">
+                  <input type="hidden" name="userId" value={u.id} />
+                  <select name="role" defaultValue={u.role} className="rounded-lg border border-neutral-300 px-3 py-2 text-xs">
+                    <option value="STUDENT">Student</option>
+                    <option value="INSTRUCTOR">Instructor</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                    Update
+                  </button>
+                </form>
+                <form action={toggleUserActiveAction}>
+                  <input type="hidden" name="userId" value={u.id} />
+                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                    {u.isActive ? "Deactivate" : "Reactivate"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- Payments --- */}
+      <section id="payments" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Payments (latest {payments.length})
+        </h2>
+        <div className="flex flex-col gap-2">
+          {payments.map((p) => (
+            <div key={p.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {p.user.name} — {courseTitleById.get(p.courseId) ?? "Course"}
+                </p>
+                <p className="text-xs text-neutral-500">
+                  {formatNaira(p.amountKobo)} · {p.provider} · {p.status} ·{" "}
+                  {p.createdAt.toISOString().slice(0, 10)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {p.receiptUrl && (
+                  <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="text-xs font-medium underline">
+                    Receipt
+                  </a>
+                )}
+                {p.status === "SUCCESS" && (
+                  <form action={refundPaymentAction}>
+                    <input type="hidden" name="paymentId" value={p.id} />
+                    <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                      Refund
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- Certificates --- */}
+      <section id="certificates" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Certificates ({certificates.length})
+        </h2>
+        <div className="flex flex-col gap-2">
+          {certificates.map((c) => (
+            <div key={c.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {c.user.name} — {c.course.title}
+                </p>
+                <p className="text-xs text-neutral-500">
+                  {c.verificationId} · {c.status} · {c.issuedAt.toISOString().slice(0, 10)}
+                </p>
+              </div>
+              {c.status === "VALID" && (
+                <form action={revokeCertificateAction}>
+                  <input type="hidden" name="certificateId" value={c.id} />
+                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-red-600">
+                    Revoke
+                  </button>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {missingCertificates.length > 0 && (
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase text-neutral-500">
+              Completed but missing a certificate
+            </p>
+            {missingCertificates.map((e) => (
+              <div key={e.id} className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3">
+                <span className="text-sm">
+                  {e.user.name} — {e.course.title}
+                </span>
+                <form action={issueCertificateAction}>
+                  <input type="hidden" name="userId" value={e.userId} />
+                  <input type="hidden" name="courseId" value={e.courseId} />
+                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                    Issue
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-neutral-200 p-3">
+      <p className="text-lg font-semibold">{value}</p>
+      <p className="text-xs text-neutral-500">{label}</p>
+    </div>
   );
 }
