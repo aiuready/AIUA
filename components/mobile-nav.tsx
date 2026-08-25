@@ -48,6 +48,13 @@ export function MobileNav({
             {session ? (
               <>
                 <Link
+                  href="/profile"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-3 text-base font-medium text-foreground hover:bg-muted"
+                >
+                  Profile
+                </Link>
+                <Link
                   href={session.dashboardHref}
                   onClick={() => setOpen(false)}
                   className={buttonVariants({ variant: "primary" })}

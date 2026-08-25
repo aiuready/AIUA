@@ -4,6 +4,17 @@ Tracks everything left after the initial scaffold (commit `7783461`). Checked
 off in commit order as each is finished for real (not just stubbed) and
 verified (build/lint/manual check). Unchecked = not started.
 
+**Since this file's last full pass**, three more things landed that
+predate its phase structure below (see git log for exact commits):
+a full design system + marketing site (shared header/footer, `components/ui/*`,
+brand tokens in `globals.css`, expanded home/about/courses pages) applied
+across the whole product; a real production bug fix (Auth.js `trustHost`
+was missing, breaking every sign-in/session read under `next start` -
+confirmed via server logs and fixed); and the course-detail Enroll CTA
+was simplified to a single "Enroll now" button with server-side gateway
+auto-selection (`lib/payments/select-provider.ts`) instead of exposing
+Paystack/Flutterwave as a learner-facing choice.
+
 ## 0. Dev environment / infra
 
 - [x] Local MySQL 8 dev DB (Docker, mirrors prod engine) — `docker-compose.yml`, `aiua_mysql` container
@@ -17,7 +28,7 @@ verified (build/lint/manual check). Unchecked = not started.
 - [x] `/signup` — real form + server action, creates User (bcrypt hash), role STUDENT — `app/(auth)/signup/`
 - [x] `/login` — real form, `signIn("credentials")`, redirect by role — `app/(auth)/login/`
 - [x] `/reset` — request + confirm flow. Stateless signed token (`lib/reset-token.ts`, HMAC via AUTH_SECRET, 1hr expiry), `/reset` + `/reset/[token]`. Sends via `lib/email.ts` (dev-stub console log until RESEND_API_KEY is set)
-- [ ] Profile page (name, photo, bio for instructors, purchase history for students) — PRD §3.1, not in the original Webflow route map; add under `/dashboard` or a `/profile` route
+- [x] Profile page — `/profile`, name + photo upload (JPEG/PNG/WebP, 2MB cap, via `lib/storage.ts`) for every role, bio for instructors only, purchase-history link for students. Reachable from the site header (desktop + mobile nav) once logged in
 - [x] Server-side role-gating helper (`lib/require-role.ts`), applied to all `(student)/(instructor)/(admin)` placeholder pages
 - [x] Verified: credential hash/compare, reset-token round-trip + tamper rejection, signup create+verify, all against the real seeded DB (smoke script, not committed)
 

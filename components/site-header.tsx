@@ -42,6 +42,12 @@ export async function SiteHeader() {
         <div className="hidden items-center gap-3 lg:flex">
           {session?.user && dashboardHref ? (
             <>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
+              >
+                Profile
+              </Link>
               <ButtonLink href={dashboardHref} variant="primary" size="sm">
                 Dashboard
               </ButtonLink>
