@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { FormField } from "@/components/form-field";
+import { buttonVariants } from "@/components/ui/button";
 import { confirmResetAction, type ResetConfirmState } from "@/app/(auth)/reset/actions";
 
 export function ResetConfirmForm({ token }: { token: string }) {
@@ -21,13 +22,9 @@ export function ResetConfirmForm({ token }: { token: string }) {
         minLength={8}
       />
 
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className={buttonVariants({ className: "w-full" })}>
         {pending ? "Saving…" : "Set new password"}
       </button>
     </form>

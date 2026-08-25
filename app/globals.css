@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------
+   AIUA Design System — the single source of visual truth for every AIUA
+   surface (marketing site, student/instructor/admin app). Change a value
+   here and it cascades everywhere `bg-primary`, `text-foreground`, etc.
+   are used, instead of hunting down raw hex/neutral-900 across pages.
+
+   Palette: "Progress teal + achievement orange" (e-learning-specific,
+   from the ui-ux-pro-max design system search) — teal reads as growth/
+   trust, orange as the "you did it" accent for CTAs and completion
+   states. Deliberately not dark-mode-first: this is a trust-building
+   education brand for a broad, often first-time-online-learner audience,
+   not a developer tool — a light, high-contrast, unambiguous UI serves
+   that better than an OLED dark theme.
+   --------------------------------------------------------------------- */
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #134e4a;
+
+  --color-primary: #0d9488;
+  --color-primary-foreground: #ffffff;
+  --color-primary-hover: #0f766e;
+
+  --color-secondary: #2dd4bf;
+  --color-secondary-foreground: #0f172a;
+
+  --color-accent: #ea580c;
+  --color-accent-foreground: #ffffff;
+  --color-accent-hover: #c2410c;
+
+  --color-card: #ffffff;
+  --color-card-foreground: #134e4a;
+
+  --color-muted: #f0fdfa;
+  --color-muted-foreground: #64748b;
+
+  --color-border: #d9f2ee;
+
+  --color-success: #16a34a;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+
+  --color-ring: #0d9488;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-primary-hover: var(--color-primary-hover);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-foreground: var(--color-secondary-foreground);
+
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-accent-hover: var(--color-accent-hover);
+
+  --color-card: var(--color-card);
+  --color-card-foreground: var(--color-card-foreground);
+
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+
+  --color-border: var(--color-border);
+
+  --color-success: var(--color-success);
+  --color-destructive: var(--color-destructive);
+  --color-destructive-foreground: var(--color-destructive-foreground);
+
+  --color-ring: var(--color-ring);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
 }

@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormField } from "@/components/form-field";
+import { AuthCard } from "@/components/auth-card";
+import { buttonVariants } from "@/components/ui/button";
 import { loginAction, type LoginState } from "./actions";
 
 export default function LoginPage() {
@@ -16,13 +18,24 @@ export default function LoginPage() {
   const deactivated = searchParams.get("deactivated") === "1";
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Log in</h1>
-      </div>
-
+    <AuthCard
+      title="Log in"
+      footer={
+        <div className="flex flex-col gap-1">
+          <Link href="/reset" className="font-medium text-primary hover:underline">
+            Forgot your password?
+          </Link>
+          <p>
+            Need an account?{" "}
+            <Link href="/signup" className="font-medium text-primary hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      }
+    >
       {deactivated && (
-        <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">
+        <p className="mb-4 rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent-hover">
           Your account has been deactivated. Contact an admin for help.
         </p>
       )}
@@ -37,28 +50,12 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
 
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className={buttonVariants({ className: "w-full" })}>
           {pending ? "Logging in…" : "Log in"}
         </button>
       </form>
-
-      <div className="flex flex-col gap-1 text-sm text-neutral-600">
-        <Link href="/reset" className="font-medium text-neutral-900 underline">
-          Forgot your password?
-        </Link>
-        <p>
-          Need an account?{" "}
-          <Link href="/signup" className="font-medium text-neutral-900 underline">
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </main>
+    </AuthCard>
   );
 }

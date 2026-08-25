@@ -71,7 +71,7 @@ export default async function LearnPage({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">{course.title}</span>
-          <span className="text-neutral-500">{enrollment.percent}%</span>
+          <span className="text-muted-foreground">{enrollment.percent}%</span>
         </div>
         <ProgressBar percent={enrollment.percent} />
       </div>
@@ -81,7 +81,7 @@ export default async function LearnPage({
           href={cohort.meetingUrl}
           target="_blank"
           rel="noreferrer"
-          className="rounded-lg bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-800"
+          className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground"
         >
           Live class: {cohort.name} — join link ↗
         </a>
@@ -97,8 +97,8 @@ export default async function LearnPage({
               href={`/learn/${courseSlug}?module=${m.id}`}
               className={`shrink-0 rounded-lg border px-3 py-2 text-sm ${
                 m.id === activeModule?.id
-                  ? "border-neutral-900 bg-neutral-900 text-white"
-                  : "border-neutral-200 text-neutral-700"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-foreground/80"
               }`}
             >
               {completedModuleIds.has(m.id) ? "✓ " : ""}
@@ -108,7 +108,7 @@ export default async function LearnPage({
         </nav>
 
         {!activeModule ? (
-          <p className="text-sm text-neutral-500">No modules yet.</p>
+          <p className="text-sm text-muted-foreground">No modules yet.</p>
         ) : (
           <div className="flex flex-1 flex-col gap-4">
             <h2 className="text-lg font-semibold">{activeModule.title}</h2>
@@ -129,14 +129,14 @@ export default async function LearnPage({
                 href={activeModule.pdfUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm font-medium text-neutral-900 underline"
+                className="text-sm font-medium text-foreground underline"
               >
                 Download module PDF
               </a>
             )}
 
             {done === "1" && (
-              <p className="rounded-lg bg-green-100 px-3 py-2 text-sm text-green-800">
+              <p className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
                 Module marked complete.
               </p>
             )}
@@ -150,14 +150,14 @@ export default async function LearnPage({
                 justSubmitted={quizResult === "submitted"}
               />
             ) : completedModuleIds.has(activeModule.id) ? (
-              <p className="text-sm font-medium text-green-700">Completed</p>
+              <p className="text-sm font-medium text-success">Completed</p>
             ) : (
               <form action={markModuleCompleteAction}>
                 <input type="hidden" name="courseSlug" value={courseSlug} />
                 <input type="hidden" name="moduleId" value={activeModule.id} />
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white sm:w-auto"
+                  className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground sm:w-auto"
                 >
                   Mark complete
                 </button>
@@ -195,7 +195,7 @@ function QuizBlock({
 }) {
   if (latestSubmission?.passed) {
     return (
-      <p className="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-800">
+      <p className="rounded-lg bg-success/10 px-3 py-2 text-sm font-medium text-success">
         Quiz passed{latestSubmission.finalScore != null ? ` (${latestSubmission.finalScore}%)` : ""}.
       </p>
     );
@@ -203,14 +203,14 @@ function QuizBlock({
 
   if (latestSubmission && latestSubmission.status === "SUBMITTED" && latestSubmission.passed === null) {
     return (
-      <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">
+      <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent-hover">
         Submitted — waiting on instructor grading.
       </p>
     );
   }
 
   return (
-    <form action={submitQuizAction} className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4">
+    <form action={submitQuizAction} className="flex flex-col gap-4 rounded-lg border border-border p-4">
       <input type="hidden" name="courseSlug" value={courseSlug} />
       <input type="hidden" name="moduleId" value={moduleId} />
       <input type="hidden" name="quizId" value={quiz.id} />
@@ -218,19 +218,19 @@ function QuizBlock({
       <h3 className="text-sm font-semibold">{quiz.title}</h3>
 
       {justSubmitted && latestSubmission?.passed === false && (
-        <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-800">
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Not quite — pass mark is {quiz.passMark}%. Try again.
         </p>
       )}
 
       {quiz.questions.map((q, i) => (
         <fieldset key={q.id} className="flex flex-col gap-2">
-          <legend className="text-sm font-medium text-neutral-800">
+          <legend className="text-sm font-medium text-foreground">
             {i + 1}. {q.prompt}
           </legend>
           {q.type === "MCQ" ? (
             q.options.map((opt) => (
-              <label key={opt.id} className="flex items-center gap-2 text-sm text-neutral-700">
+              <label key={opt.id} className="flex items-center gap-2 text-sm text-foreground/80">
                 <input type="radio" name={`q_${q.id}`} value={opt.id} required />
                 {opt.text}
               </label>
@@ -240,7 +240,7 @@ function QuizBlock({
               name={`q_${q.id}`}
               required
               rows={3}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm"
             />
           )}
         </fieldset>
@@ -248,7 +248,7 @@ function QuizBlock({
 
       <button
         type="submit"
-        className="w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white sm:w-auto"
+        className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground sm:w-auto"
       >
         Submit quiz
       </button>

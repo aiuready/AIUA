@@ -14,7 +14,7 @@ export function FormField({
   defaultValue?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium text-neutral-800">
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
       {label}
       <input
         name={name}
@@ -23,7 +23,7 @@ export function FormField({
         required
         minLength={minLength}
         defaultValue={defaultValue}
-        className="rounded-lg border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-neutral-900 focus:outline-none"
+        className="rounded-lg border border-border px-4 py-3 text-base text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
     </label>
   );

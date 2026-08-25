@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { ShieldCheck } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
 
 type Result =
   | { status: "VALID"; holder: string; course: string; issuedAt: string }
@@ -26,49 +29,52 @@ export default function VerifyPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Verify a certificate</h1>
-        <p className="mt-1 text-sm text-neutral-600">No login required.</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-neutral-800">
-          Verification ID
-          <input
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            required
-            className="rounded-lg border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-neutral-900 focus:outline-none"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {loading ? "Checking…" : "Verify"}
-        </button>
-      </form>
-
-      {result?.status === "VALID" && (
-        <div className="rounded-lg bg-green-100 px-4 py-3 text-sm text-green-900">
-          <p className="font-semibold">Valid certificate</p>
-          <p>Holder: {result.holder}</p>
-          <p>Course: {result.course}</p>
-          <p>Issued: {new Date(result.issuedAt).toISOString().slice(0, 10)}</p>
+    <main className="py-14 sm:py-20">
+      <Container className="flex max-w-md flex-col items-center gap-6 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <ShieldCheck size={28} />
+        </span>
+        <div>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+            Verify a certificate
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">No login required.</p>
         </div>
-      )}
-      {result?.status === "REVOKED" && (
-        <p className="rounded-lg bg-red-100 px-4 py-3 text-sm text-red-900">
-          This certificate has been revoked and is no longer valid.
-        </p>
-      )}
-      {result?.status === "NOT_FOUND" && (
-        <p className="rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-800">
-          No certificate found for that ID.
-        </p>
-      )}
+
+        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4 text-left">
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+            Verification ID
+            <input
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              required
+              className="rounded-lg border border-border px-4 py-3 text-base text-foreground focus:border-primary focus:outline-none"
+            />
+          </label>
+          <button type="submit" disabled={loading} className={buttonVariants({ className: "w-full" })}>
+            {loading ? "Checking…" : "Verify"}
+          </button>
+        </form>
+
+        {result?.status === "VALID" && (
+          <div className="w-full rounded-lg bg-success/10 px-4 py-3 text-left text-sm text-success">
+            <p className="font-semibold">Valid certificate</p>
+            <p>Holder: {result.holder}</p>
+            <p>Course: {result.course}</p>
+            <p>Issued: {new Date(result.issuedAt).toISOString().slice(0, 10)}</p>
+          </div>
+        )}
+        {result?.status === "REVOKED" && (
+          <p className="w-full rounded-lg bg-destructive/10 px-4 py-3 text-left text-sm text-destructive">
+            This certificate has been revoked and is no longer valid.
+          </p>
+        )}
+        {result?.status === "NOT_FOUND" && (
+          <p className="w-full rounded-lg bg-muted px-4 py-3 text-left text-sm text-muted-foreground">
+            No certificate found for that ID.
+          </p>
+        )}
+      </Container>
     </main>
   );
 }

@@ -77,9 +77,9 @@ export default async function AdminDashboardPage({
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-10 px-4 py-10 sm:max-w-4xl">
       <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-      {saved === "1" && <p className="text-sm text-green-700">Saved.</p>}
+      {saved === "1" && <p className="text-sm text-success">Saved.</p>}
       {error === "self" && (
-        <p className="text-sm text-red-600">You can&rsquo;t deactivate your own account.</p>
+        <p className="text-sm text-destructive">You can&rsquo;t deactivate your own account.</p>
       )}
 
       <nav className="flex gap-4 text-sm font-medium underline">
@@ -92,7 +92,7 @@ export default async function AdminDashboardPage({
 
       {/* --- Reporting --- */}
       <section id="reporting" className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Reporting</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Reporting</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Revenue" value={formatNaira(revenue._sum.amountKobo ?? 0)} />
           <Stat label="Active enrollments" value={String(activeEnrollments)} />
@@ -103,26 +103,26 @@ export default async function AdminDashboardPage({
 
       {/* --- Courses --- */}
       <section id="courses" className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Courses ({courses.length})
         </h2>
         <div className="flex flex-col gap-2">
           {courses.map((c) => (
-            <div key={c.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={c.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium">{c.title}</p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-muted-foreground">
                   {c.instructor.name} · {formatNaira(c.priceKobo)}
                 </p>
               </div>
               <form action={setCourseStatusAction} className="flex items-center gap-2">
                 <input type="hidden" name="courseId" value={c.id} />
-                <select name="status" defaultValue={c.status} className="rounded-lg border border-neutral-300 px-3 py-2 text-xs">
+                <select name="status" defaultValue={c.status} className="rounded-lg border border-border px-3 py-2 text-xs">
                   <option value="DRAFT">Draft</option>
                   <option value="PUBLISHED">Published</option>
                   <option value="ARCHIVED">Archived</option>
                 </select>
-                <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
                   Update
                 </button>
               </form>
@@ -133,7 +133,7 @@ export default async function AdminDashboardPage({
 
       {/* --- Users --- */}
       <section id="users" className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Users ({users.length})
         </h2>
         <form className="flex gap-2">
@@ -141,36 +141,36 @@ export default async function AdminDashboardPage({
             name="q"
             defaultValue={q}
             placeholder="Search name or email"
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            className="flex-1 rounded-lg border border-border px-3 py-2 text-sm"
           />
-          <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+          <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
             Search
           </button>
         </form>
         <div className="flex flex-col gap-2">
           {users.map((u) => (
-            <div key={u.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={u.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium">
-                  {u.name} {!u.isActive && <span className="text-red-600">(deactivated)</span>}
+                  {u.name} {!u.isActive && <span className="text-destructive">(deactivated)</span>}
                 </p>
-                <p className="text-xs text-neutral-500">{u.email}</p>
+                <p className="text-xs text-muted-foreground">{u.email}</p>
               </div>
               <div className="flex items-center gap-2">
                 <form action={updateUserRoleAction} className="flex items-center gap-2">
                   <input type="hidden" name="userId" value={u.id} />
-                  <select name="role" defaultValue={u.role} className="rounded-lg border border-neutral-300 px-3 py-2 text-xs">
+                  <select name="role" defaultValue={u.role} className="rounded-lg border border-border px-3 py-2 text-xs">
                     <option value="STUDENT">Student</option>
                     <option value="INSTRUCTOR">Instructor</option>
                     <option value="ADMIN">Admin</option>
                   </select>
-                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                  <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
                     Update
                   </button>
                 </form>
                 <form action={toggleUserActiveAction}>
                   <input type="hidden" name="userId" value={u.id} />
-                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                  <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
                     {u.isActive ? "Deactivate" : "Reactivate"}
                   </button>
                 </form>
@@ -182,17 +182,17 @@ export default async function AdminDashboardPage({
 
       {/* --- Payments --- */}
       <section id="payments" className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Payments (latest {payments.length})
         </h2>
         <div className="flex flex-col gap-2">
           {payments.map((p) => (
-            <div key={p.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={p.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium">
                   {p.user.name} — {courseTitleById.get(p.courseId) ?? "Course"}
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-muted-foreground">
                   {formatNaira(p.amountKobo)} · {p.provider} · {p.status} ·{" "}
                   {p.createdAt.toISOString().slice(0, 10)}
                 </p>
@@ -206,7 +206,7 @@ export default async function AdminDashboardPage({
                 {p.status === "SUCCESS" && (
                   <form action={refundPaymentAction}>
                     <input type="hidden" name="paymentId" value={p.id} />
-                    <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                    <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
                       Refund
                     </button>
                   </form>
@@ -219,24 +219,24 @@ export default async function AdminDashboardPage({
 
       {/* --- Certificates --- */}
       <section id="certificates" className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Certificates ({certificates.length})
         </h2>
         <div className="flex flex-col gap-2">
           {certificates.map((c) => (
-            <div key={c.id} className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={c.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium">
                   {c.user.name} — {c.course.title}
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-muted-foreground">
                   {c.verificationId} · {c.status} · {c.issuedAt.toISOString().slice(0, 10)}
                 </p>
               </div>
               {c.status === "VALID" && (
                 <form action={revokeCertificateAction}>
                   <input type="hidden" name="certificateId" value={c.id} />
-                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-red-600">
+                  <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-destructive">
                     Revoke
                   </button>
                 </form>
@@ -247,18 +247,18 @@ export default async function AdminDashboardPage({
 
         {missingCertificates.length > 0 && (
           <div className="mt-2 flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase text-neutral-500">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
               Completed but missing a certificate
             </p>
             {missingCertificates.map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3">
+              <div key={e.id} className="flex items-center justify-between rounded-lg border border-accent/40 bg-accent/5 p-3">
                 <span className="text-sm">
                   {e.user.name} — {e.course.title}
                 </span>
                 <form action={issueCertificateAction}>
                   <input type="hidden" name="userId" value={e.userId} />
                   <input type="hidden" name="courseId" value={e.courseId} />
-                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium">
+                  <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
                     Issue
                   </button>
                 </form>
@@ -273,9 +273,9 @@ export default async function AdminDashboardPage({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 p-3">
+    <div className="rounded-lg border border-border p-3">
       <p className="text-lg font-semibold">{value}</p>
-      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }

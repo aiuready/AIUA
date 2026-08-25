@@ -17,7 +17,7 @@ export default async function StudentCertificatesPage() {
       <h1 className="text-2xl font-semibold tracking-tight">My certificates</h1>
 
       {certificates.length === 0 ? (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           No certificates yet — complete a course to earn one.
         </p>
       ) : (
@@ -25,20 +25,20 @@ export default async function StudentCertificatesPage() {
           {certificates.map((cert) => (
             <div
               key={cert.id}
-              className="flex flex-col gap-1 rounded-lg border border-neutral-200 p-4"
+              className="flex flex-col gap-1 rounded-lg border border-border p-4"
             >
               <span className="text-sm font-semibold">{cert.course.title}</span>
-              <span className="text-xs text-neutral-500">
+              <span className="text-xs text-muted-foreground">
                 Issued {cert.issuedAt.toISOString().slice(0, 10)}
                 {cert.status === "REVOKED" ? " — REVOKED" : ""}
               </span>
-              <span className="text-xs text-neutral-500">ID: {cert.verificationId}</span>
+              <span className="text-xs text-muted-foreground">ID: {cert.verificationId}</span>
               {cert.status === "VALID" && (
                 <a
                   href={cert.pdfUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-1 text-sm font-medium text-neutral-900 underline"
+                  className="mt-1 text-sm font-medium text-foreground underline"
                 >
                   Download PDF
                 </a>

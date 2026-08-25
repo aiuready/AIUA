@@ -13,13 +13,13 @@ export function CourseCard({
   return (
     <Link
       href={`/courses/${course.slug}`}
-      className="flex flex-col gap-2 rounded-xl border border-neutral-200 p-4 transition hover:border-neutral-400"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 transition hover:border-primary hover:shadow-sm"
     >
-      <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <span className="text-xs font-semibold uppercase tracking-wide text-primary">
         {SCHOOL_LABELS[course.school]}
       </span>
-      <h3 className="text-base font-semibold text-neutral-900">{course.title}</h3>
-      <span className="mt-auto text-sm font-medium text-neutral-900">
+      <h3 className="font-heading text-base font-semibold text-foreground">{course.title}</h3>
+      <span className="mt-auto text-sm font-medium text-foreground">
         {formatNaira(course.priceKobo)}
       </span>
     </Link>

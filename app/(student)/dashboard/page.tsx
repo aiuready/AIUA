@@ -25,17 +25,17 @@ export default async function StudentDashboardPage() {
       {continueLearning ? (
         <Link
           href={`/learn/${continueLearning.course.slug}`}
-          className="flex flex-col gap-2 rounded-xl border border-neutral-900 p-4"
+          className="flex flex-col gap-2 rounded-xl border border-primary p-4"
         >
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Continue learning
           </span>
           <span className="text-base font-semibold">{continueLearning.course.title}</span>
           <ProgressBar percent={continueLearning.percent} />
-          <span className="text-xs text-neutral-500">{continueLearning.percent}% complete</span>
+          <span className="text-xs text-muted-foreground">{continueLearning.percent}% complete</span>
         </Link>
       ) : (
-        <div className="rounded-xl border border-neutral-200 p-4 text-sm text-neutral-600">
+        <div className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
           You&rsquo;re not enrolled in a course yet.{" "}
           <Link href="/courses" className="font-medium underline">
             Browse courses
@@ -45,21 +45,21 @@ export default async function StudentDashboardPage() {
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Enrolled courses
         </h2>
         {enrollments.length === 0 ? (
-          <p className="text-sm text-neutral-500">No enrolled courses yet.</p>
+          <p className="text-sm text-muted-foreground">No enrolled courses yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {enrollments.map((e) => (
               <Link
                 key={e.id}
                 href={`/learn/${e.course.slug}`}
-                className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
               >
                 <span className="text-sm font-medium">{e.course.title}</span>
-                <span className="text-xs text-neutral-500">{e.percent}%</span>
+                <span className="text-xs text-muted-foreground">{e.percent}%</span>
               </Link>
             ))}
           </div>

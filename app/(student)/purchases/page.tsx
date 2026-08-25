@@ -30,18 +30,18 @@ export default async function PurchasesPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Purchases</h1>
 
       {payments.length === 0 ? (
-        <p className="text-sm text-neutral-500">No purchases yet.</p>
+        <p className="text-sm text-muted-foreground">No purchases yet.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {payments.map((p) => (
-            <div key={p.id} className="flex flex-col gap-1 rounded-lg border border-neutral-200 p-4">
+            <div key={p.id} className="flex flex-col gap-1 rounded-lg border border-border p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">
                   {courseTitleById.get(p.courseId) ?? "Course"}
                 </span>
                 <span className="text-sm font-medium">{formatNaira(p.amountKobo)}</span>
               </div>
-              <span className="text-xs text-neutral-500">
+              <span className="text-xs text-muted-foreground">
                 {p.provider} · {p.status} · {p.createdAt.toISOString().slice(0, 10)}
                 {p.attempts > 1 ? ` · ${p.attempts} attempts` : ""}
               </span>
@@ -52,7 +52,7 @@ export default async function PurchasesPage() {
                     href={p.receiptUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm font-medium text-neutral-900 underline"
+                    className="text-sm font-medium text-foreground underline"
                   >
                     Receipt
                   </a>
@@ -60,7 +60,7 @@ export default async function PurchasesPage() {
                 {(p.status === "FAILED" || p.status === "PENDING") && (
                   <form action="/api/payments/retry" method="POST">
                     <input type="hidden" name="paymentId" value={p.id} />
-                    <button type="submit" className="text-sm font-medium text-neutral-900 underline">
+                    <button type="submit" className="text-sm font-medium text-foreground underline">
                       Retry
                     </button>
                   </form>

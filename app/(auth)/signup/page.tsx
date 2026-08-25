@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { FormField } from "@/components/form-field";
+import { AuthCard } from "@/components/auth-card";
+import { buttonVariants } from "@/components/ui/button";
 import { signupAction, type SignupState } from "./actions";
 
 export default function SignupPage() {
@@ -12,14 +14,18 @@ export default function SignupPage() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Sign up</h1>
-        <p className="mt-1 text-sm text-neutral-600">
-          Single column, large fields. Role defaults to student.
-        </p>
-      </div>
-
+    <AuthCard
+      title="Create your account"
+      description="Role defaults to student."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-primary hover:underline">
+            Log in
+          </Link>
+        </>
+      }
+    >
       <form action={formAction} className="flex flex-col gap-4">
         <FormField label="Name" name="name" autoComplete="name" />
         <FormField label="Email" name="email" type="email" autoComplete="email" />
@@ -31,23 +37,12 @@ export default function SignupPage() {
           minLength={8}
         />
 
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className={buttonVariants({ className: "w-full" })}>
           {pending ? "Creating account…" : "Create account"}
         </button>
       </form>
-
-      <p className="text-sm text-neutral-600">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-neutral-900 underline">
-          Log in
-        </Link>
-      </p>
-    </main>
+    </AuthCard>
   );
 }

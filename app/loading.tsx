@@ -5,8 +5,8 @@
 export default function Loading() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 items-center justify-center px-4 py-10">
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900" />
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-primary" />
         Loading…
       </div>
     </main>

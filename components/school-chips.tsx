@@ -8,10 +8,10 @@ export function SchoolChips({ active }: { active?: School }) {
     <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
       <Link
         href="/courses"
-        className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium ${
+        className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
           !active
-            ? "border-neutral-900 bg-neutral-900 text-white"
-            : "border-neutral-300 text-neutral-700"
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border text-foreground/70 hover:border-primary/50"
         }`}
       >
         All
@@ -20,10 +20,10 @@ export function SchoolChips({ active }: { active?: School }) {
         <Link
           key={school}
           href={`/courses?school=${school}`}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium ${
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
             active === school
-              ? "border-neutral-900 bg-neutral-900 text-white"
-              : "border-neutral-300 text-neutral-700"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border text-foreground/70 hover:border-primary/50"
           }`}
         >
           {SCHOOL_LABELS[school]}
