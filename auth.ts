@@ -10,6 +10,12 @@ import { prisma } from "@/lib/prisma";
 // check per route (TRD §2, §5) - this file only establishes identity.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
+  // Required for any self-hosted (non-Vercel) production deployment - the
+  // TRD's target (DigitalOcean App Platform/Droplet) is exactly that.
+  // Without this, Auth.js rejects every request in production mode with
+  // "UntrustedHost", which silently breaks session reads and sign-in
+  // (confirmed via the prod server logs, not a hypothesis).
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
