@@ -48,6 +48,23 @@ blank in `.env` for local dev on purpose — the code degrades gracefully
 without them (checkout fails cleanly with `?checkout=error`, storage/email
 fall back to local disk / console log). Fill them in for staging/prod.
 
+## Testing
+
+`e2e/` is a real Playwright suite (not mocked) that drives the actual app
+against the real MySQL dev DB — 33 tests covering the public site, auth,
+every role's dashboard, the full learning→quiz→certificate loop, payments,
+and mobile/responsive behavior, plus visual screenshots.
+
+```bash
+docker compose up -d && npm run seed   # DB up + seeded
+npm run build && npm run start          # test against a real prod build
+npm run test:e2e                        # or: npx playwright test
+```
+
+Requires the app running at `http://localhost:3000` (see `playwright.config.ts`
+for `baseURL`). Screenshots land in `e2e/screenshots/` (gitignored) — useful
+for an actual visual check, not just pass/fail assertions.
+
 ## Structure
 
 ```
