@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { recomputeEnrollmentProgress } from "@/lib/progress";
+import { uploadFile } from "@/lib/storage";
+import { MAX_DOCUMENT_BYTES, PDF_TYPES, SLIDES_TYPES, extFor } from "@/lib/upload-validation";
 
 // Every action here re-checks Course.instructorId === session.user.id
 // (Webflow §6.2, TRD §2) - ownership is never assumed from the URL alone.
@@ -16,6 +18,30 @@ async function requireOwnedCourse(courseId: string) {
   if (!course || course.instructorId !== session.user.id) redirect("/instructor");
 
   return { session, course };
+}
+
+// Uploads a module document (PDF for "pdf", PDF/PPT/PPTX for "slides") if
+// one was actually chosen. Returns undefined (leave field untouched) when
+// no file was picked, or the new URL on success. Throws a tagged error the
+// caller turns into a redirect query param on bad type/size, rather than
+// silently dropping a bad upload.
+class UploadError extends Error {}
+
+async function handleDocumentUpload(
+  formData: FormData,
+  fieldName: string,
+  allowed: Record<string, string>,
+  keyPrefix: string
+): Promise<string | undefined> {
+  const file = formData.get(fieldName);
+  if (!(file instanceof File) || file.size === 0) return undefined;
+
+  const ext = extFor(file, allowed);
+  if (!ext) throw new UploadError("type");
+  if (file.size > MAX_DOCUMENT_BYTES) throw new UploadError("size");
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return uploadFile(`${keyPrefix}/${Date.now()}.${ext}`, buffer, file.type);
 }
 
 const courseSchema = z.object({
@@ -71,8 +97,19 @@ export async function addModuleAction(formData: FormData): Promise<void> {
   const title = String(formData.get("title") ?? "").trim();
   if (!title) redirect(`/instructor/courses/${course.id}`);
 
+  // videoUrl is a pasted embed link (YouTube/Vimeo/any platform); pdf and
+  // slides are real uploads via lib/storage.ts.
   const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
-  const pdfUrl = String(formData.get("pdfUrl") ?? "").trim() || null;
+
+  let pdfUrl: string | undefined;
+  let slidesUrl: string | undefined;
+  try {
+    pdfUrl = await handleDocumentUpload(formData, "pdf", PDF_TYPES, `modules/${course.id}/pdf`);
+    slidesUrl = await handleDocumentUpload(formData, "slides", SLIDES_TYPES, `modules/${course.id}/slides`);
+  } catch (err) {
+    const kind = err instanceof UploadError ? err.message : "unknown";
+    redirect(`/instructor/courses/${course.id}?error=upload-${kind}`);
+  }
 
   const maxOrder = await prisma.module.aggregate({
     where: { courseId: course.id },
@@ -85,6 +122,7 @@ export async function addModuleAction(formData: FormData): Promise<void> {
       title,
       videoUrl,
       pdfUrl,
+      slidesUrl,
       order: (maxOrder._max.order ?? 0) + 1,
     },
   });
@@ -100,12 +138,26 @@ export async function updateModuleAction(formData: FormData): Promise<void> {
   const moduleRow = await prisma.module.findUnique({ where: { id: moduleId } });
   if (!moduleRow || moduleRow.courseId !== course.id) redirect(`/instructor/courses/${course.id}`);
 
+  let pdfUrl: string | undefined;
+  let slidesUrl: string | undefined;
+  try {
+    pdfUrl = await handleDocumentUpload(formData, "pdf", PDF_TYPES, `modules/${course.id}/pdf`);
+    slidesUrl = await handleDocumentUpload(formData, "slides", SLIDES_TYPES, `modules/${course.id}/slides`);
+  } catch (err) {
+    const kind = err instanceof UploadError ? err.message : "unknown";
+    redirect(`/instructor/courses/${course.id}?error=upload-${kind}`);
+  }
+
   await prisma.module.update({
     where: { id: moduleId },
     data: {
       title: String(formData.get("title") ?? moduleRow.title),
       videoUrl: String(formData.get("videoUrl") ?? "").trim() || null,
-      pdfUrl: String(formData.get("pdfUrl") ?? "").trim() || null,
+      // A file was chosen -> replace. Nothing chosen -> keep what's there
+      // (re-uploading on every save, even when the instructor is only
+      // editing the title, would be wrong).
+      ...(pdfUrl !== undefined ? { pdfUrl } : {}),
+      ...(slidesUrl !== undefined ? { slidesUrl } : {}),
     },
   });
 
@@ -284,4 +336,44 @@ export async function gradeSubmissionAction(formData: FormData): Promise<void> {
   }
 
   redirect(`/instructor/courses/${course.id}?graded=1`);
+}
+
+// Push info to students (live class links, updates, "and so on"). Instructor
+// posts start PENDING and are invisible to students until an admin
+// approves them - admin must approve everything an instructor pushes.
+export async function createAnnouncementAction(formData: FormData): Promise<void> {
+  const courseId = String(formData.get("courseId"));
+  const { session, course } = await requireOwnedCourse(courseId);
+
+  const title = String(formData.get("title") ?? "").trim();
+  const message = String(formData.get("message") ?? "").trim();
+  if (!title || !message) redirect(`/instructor/courses/${course.id}?error=announcement#announcements`);
+
+  const link = String(formData.get("link") ?? "").trim() || null;
+
+  await prisma.announcement.create({
+    data: {
+      courseId: course.id,
+      authorId: session.user.id,
+      title,
+      message,
+      link,
+      status: "PENDING",
+    },
+  });
+
+  redirect(`/instructor/courses/${course.id}?announced=1#announcements`);
+}
+
+export async function deleteAnnouncementAction(formData: FormData): Promise<void> {
+  const courseId = String(formData.get("courseId"));
+  const { course } = await requireOwnedCourse(courseId);
+  const announcementId = String(formData.get("announcementId"));
+
+  const announcement = await prisma.announcement.findUnique({ where: { id: announcementId } });
+  if (announcement && announcement.courseId === course.id) {
+    await prisma.announcement.delete({ where: { id: announcementId } });
+  }
+
+  redirect(`/instructor/courses/${course.id}#announcements`);
 }

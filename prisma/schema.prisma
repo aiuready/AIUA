@@ -66,6 +66,12 @@ enum SubmissionStatus {
   GRADED
 }
 
+enum AnnouncementStatus {
+  PENDING   // instructor-authored, awaiting admin approval before students see it
+  APPROVED  // visible to students - set immediately for admin-authored posts
+  REJECTED  // admin declined it; never shown to students
+}
+
 enum CertificateStatus {
   VALID
   REVOKED
@@ -93,6 +99,8 @@ model User {
   submissions   Submission[]
   certificates  Certificate[]
   gradedSubmissions Submission[] @relation("Grader")
+  announcementsAuthored Announcement[] @relation("AnnouncementAuthor")
+  announcementsReviewed Announcement[] @relation("AnnouncementReviewer")
 
   @@index([role])
 }
@@ -119,6 +127,7 @@ model Course {
   enrollments   Enrollment[]
   certificates  Certificate[]
   cohorts       Cohort[]
+  announcements Announcement[]
 
   @@index([school])
   @@index([status])
@@ -131,8 +140,9 @@ model Module {
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
   order       Int
-  videoUrl    String?                       // Vimeo/YouTube unlisted embed
-  pdfUrl      String?                       // downloadable per-module PDF
+  videoUrl    String?                       // Vimeo/YouTube (or any) embed link - pasted, not uploaded
+  pdfUrl      String?                       // uploaded downloadable per-module PDF
+  slidesUrl   String?                       // uploaded slide deck (PDF or PPT/PPTX)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -313,4 +323,29 @@ model Cohort {
   createdAt  DateTime @default(now())
 
   @@index([courseId])
+}
+
+// ---------------------------------------------------------------------------
+// ANNOUNCEMENTS (instructor/admin push info to students - live class
+// notifications, links, general updates)
+// ---------------------------------------------------------------------------
+
+model Announcement {
+  id           String             @id @default(cuid())
+  courseId     String?                              // null = platform-wide (admin only)
+  course       Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User               @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+  title        String
+  message      String             @db.Text
+  link         String?                              // e.g. a live-class meeting link
+  status       AnnouncementStatus @default(PENDING)  // instructor posts start PENDING; admin posts are auto-APPROVED
+  reviewedById String?                               // admin who approved/rejected it
+  reviewedBy   User?              @relation("AnnouncementReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@index([courseId])
+  @@index([createdAt])
+  @@index([status])
 }

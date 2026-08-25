@@ -14,6 +14,8 @@ import {
   addQuestionAction,
   deleteQuestionAction,
   gradeSubmissionAction,
+  createAnnouncementAction,
+  deleteAnnouncementAction,
 } from "./actions";
 
 // Course editor + grading queue (Webflow §6.2). Instructor sees only their
@@ -24,12 +26,12 @@ export default async function InstructorCourseEditorPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; graded?: string }>;
+  searchParams: Promise<{ saved?: string; graded?: string; announced?: string; error?: string }>;
 }) {
   await requireRole(["INSTRUCTOR"]);
   const session = await auth();
   const { id } = await params;
-  const { saved, graded } = await searchParams;
+  const { saved, graded, announced, error } = await searchParams;
 
   const course = await prisma.course.findUnique({
     where: { id },
@@ -53,6 +55,11 @@ export default async function InstructorCourseEditorPage({
     orderBy: { submittedAt: "asc" },
   });
 
+  const announcements = await prisma.announcement.findMany({
+    where: { courseId: course.id },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-10 px-4 py-10 sm:max-w-3xl">
       <div>
@@ -63,6 +70,22 @@ export default async function InstructorCourseEditorPage({
       </div>
       {saved === "1" && <p className="text-sm text-success">Saved.</p>}
       {graded === "1" && <p className="text-sm text-success">Submission graded.</p>}
+      {announced === "1" && (
+        <p className="text-sm text-success">
+          Sent for admin approval — students won&rsquo;t see it until an admin approves it.
+        </p>
+      )}
+      {error === "upload-type" && (
+        <p className="text-sm text-destructive">
+          That file type isn&rsquo;t supported. PDFs for module PDFs; PDF/PPT/PPTX for slides.
+        </p>
+      )}
+      {error === "upload-size" && (
+        <p className="text-sm text-destructive">That file is too large (10MB max).</p>
+      )}
+      {error === "announcement" && (
+        <p className="text-sm text-destructive">Title and message are both required.</p>
+      )}
 
       {/* --- Course meta --- */}
       <section className="flex flex-col gap-3">
@@ -136,8 +159,36 @@ export default async function InstructorCourseEditorPage({
               <input type="hidden" name="courseId" value={course.id} />
               <input type="hidden" name="moduleId" value={m.id} />
               <Field label="Title" name="title" defaultValue={m.title} />
-              <Field label="Video URL" name="videoUrl" defaultValue={m.videoUrl ?? ""} />
-              <Field label="PDF URL" name="pdfUrl" defaultValue={m.pdfUrl ?? ""} />
+              <Field label="Video embed URL (YouTube, Vimeo, or any platform)" name="videoUrl" defaultValue={m.videoUrl ?? ""} />
+
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                PDF {m.pdfUrl && (
+                  <a href={m.pdfUrl} target="_blank" rel="noreferrer" className="font-normal text-primary underline">
+                    (current file)
+                  </a>
+                )}
+                <input
+                  type="file"
+                  name="pdf"
+                  accept="application/pdf"
+                  className="text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Slides {m.slidesUrl && (
+                  <a href={m.slidesUrl} target="_blank" rel="noreferrer" className="font-normal text-primary underline">
+                    (current file)
+                  </a>
+                )}
+                <input
+                  type="file"
+                  name="slides"
+                  accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                  className="text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+                />
+              </label>
+
               <button type="submit" className="w-fit rounded-lg border border-border px-4 py-2 text-xs font-medium">
                 Save module
               </button>
@@ -179,8 +230,25 @@ export default async function InstructorCourseEditorPage({
         <form action={addModuleAction} className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-4">
           <input type="hidden" name="courseId" value={course.id} />
           <Field label="New module title" name="title" />
-          <Field label="Video URL" name="videoUrl" />
-          <Field label="PDF URL" name="pdfUrl" />
+          <Field label="Video embed URL (YouTube, Vimeo, or any platform)" name="videoUrl" />
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+            PDF
+            <input
+              type="file"
+              name="pdf"
+              accept="application/pdf"
+              className="text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+            Slides
+            <input
+              type="file"
+              name="slides"
+              accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+              className="text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+            />
+          </label>
           <button type="submit" className="w-fit rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground">
             Add module
           </button>
@@ -202,6 +270,62 @@ export default async function InstructorCourseEditorPage({
             ))}
           </div>
         )}
+      </section>
+
+      {/* --- Announcements (push info to students) --- */}
+      <section id="announcements" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Announcements to students
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Live class links, updates, and so on. An admin has to approve
+          these before students see them.
+        </p>
+        {announcements.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nothing posted yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {announcements.map((a) => (
+              <div key={a.id} className="flex flex-col gap-1 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{a.title}</span>
+                  <span
+                    className={`text-xs font-medium ${
+                      a.status === "APPROVED"
+                        ? "text-success"
+                        : a.status === "REJECTED"
+                          ? "text-destructive"
+                          : "text-accent-hover"
+                    }`}
+                  >
+                    {a.status}
+                  </span>
+                </div>
+                <p className="text-sm text-foreground/80">{a.message}</p>
+                {a.link && (
+                  <a href={a.link} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+                    {a.link}
+                  </a>
+                )}
+                <form action={deleteAnnouncementAction} className="mt-1">
+                  <input type="hidden" name="courseId" value={course.id} />
+                  <input type="hidden" name="announcementId" value={a.id} />
+                  <button type="submit" className="text-xs text-destructive underline">Delete</button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form action={createAnnouncementAction} className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-4">
+          <input type="hidden" name="courseId" value={course.id} />
+          <Field label="Title" name="title" />
+          <TextAreaField label="Message" name="message" />
+          <Field label="Link (optional - e.g. live class link)" name="link" />
+          <button type="submit" className="w-fit rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground">
+            Send for approval
+          </button>
+        </form>
       </section>
 
       {/* --- Grading queue --- */}

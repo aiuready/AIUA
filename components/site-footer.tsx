@@ -44,6 +44,7 @@ export function SiteFooter() {
             <li><Link href="/verify" className="text-sm text-foreground/80 hover:text-foreground">Verify a certificate</Link></li>
             <li><Link href="/signup" className="text-sm text-foreground/80 hover:text-foreground">Sign up</Link></li>
             <li><Link href="/login" className="text-sm text-foreground/80 hover:text-foreground">Log in</Link></li>
+            <li><Link href="/instructor/login" className="text-sm text-foreground/80 hover:text-foreground">Instructor login</Link></li>
           </ul>
         </div>
 

@@ -66,6 +66,12 @@ export default async function LearnPage({
 
   const cohort = course.cohorts[0];
 
+  const announcements = await prisma.announcement.findMany({
+    where: { courseId: course.id, status: "APPROVED" },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6 sm:max-w-3xl">
       <div className="flex flex-col gap-2">
@@ -85,6 +91,22 @@ export default async function LearnPage({
         >
           Live class: {cohort.name} — join link ↗
         </a>
+      )}
+
+      {announcements.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {announcements.map((a) => (
+            <div key={a.id} className="flex flex-col gap-1 rounded-lg bg-accent/5 px-3 py-2">
+              <span className="text-sm font-medium text-foreground">{a.title}</span>
+              <p className="text-sm text-foreground/80">{a.message}</p>
+              {a.link && (
+                <a href={a.link} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+                  {a.link}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
       <div className="flex flex-col gap-6 sm:flex-row">
@@ -124,15 +146,29 @@ export default async function LearnPage({
               </div>
             )}
 
-            {activeModule.pdfUrl && (
-              <a
-                href={activeModule.pdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-medium text-foreground underline"
-              >
-                Download module PDF
-              </a>
+            {(activeModule.pdfUrl || activeModule.slidesUrl) && (
+              <div className="flex gap-4">
+                {activeModule.pdfUrl && (
+                  <a
+                    href={activeModule.pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-foreground underline"
+                  >
+                    Download module PDF
+                  </a>
+                )}
+                {activeModule.slidesUrl && (
+                  <a
+                    href={activeModule.slidesUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-foreground underline"
+                  >
+                    Download slides
+                  </a>
+                )}
+              </div>
             )}
 
             {done === "1" && (

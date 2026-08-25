@@ -218,8 +218,9 @@ export default async function HomePage() {
             our public /verify page — no login required.
           </FaqItem>
           <FaqItem question="Can I teach a course on AIUA?">
-            Instructor accounts are approved by an admin. Sign up, then reach
-            out so we can upgrade your account to Instructor.
+            Instructor accounts are set up by an AIUA admin, not through
+            public sign-up. Reach out and, once your account is created,
+            you&rsquo;ll log in at your own instructor login page.
           </FaqItem>
           <FaqItem question="Do I need a laptop to learn?">
             No — AIUA is built mobile-first, so course video, PDFs, and quizzes

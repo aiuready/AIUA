@@ -8,6 +8,11 @@ import {
   refundPaymentAction,
   revokeCertificateAction,
   issueCertificateAction,
+  createInstructorAction,
+  approveAnnouncementAction,
+  rejectAnnouncementAction,
+  deleteAnnouncementAdminAction,
+  createAdminAnnouncementAction,
 } from "./actions";
 
 // Admin dashboard (Webflow §7): courses, users, payments, certificates,
@@ -16,10 +21,16 @@ import {
 export default async function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; saved?: string; error?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    saved?: string;
+    error?: string;
+    instructorCreated?: string;
+    setupLink?: string;
+  }>;
 }) {
   await requireRole(["ADMIN"]);
-  const { q, saved, error } = await searchParams;
+  const { q, saved, error, instructorCreated, setupLink } = await searchParams;
 
   const [revenue, activeEnrollments, courseCount, userCount] = await Promise.all([
     prisma.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amountKobo: true } }),
@@ -74,6 +85,17 @@ export default async function AdminDashboardPage({
     (e) => !certifiedPairs.has(`${e.userId}:${e.courseId}`)
   );
 
+  const announcements = await prisma.announcement.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { author: { select: { name: true } }, course: { select: { title: true } } },
+  });
+  const pendingAnnouncements = announcements.filter((a) => a.status === "PENDING");
+
+  const publishedCourses = await prisma.course.findMany({
+    where: { status: "PUBLISHED" },
+    select: { id: true, title: true },
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-10 px-4 py-10 sm:max-w-4xl">
       <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
@@ -81,11 +103,34 @@ export default async function AdminDashboardPage({
       {error === "self" && (
         <p className="text-sm text-destructive">You can&rsquo;t deactivate your own account.</p>
       )}
+      {error === "instructor" && (
+        <p className="text-sm text-destructive">Enter a valid name and email for the instructor.</p>
+      )}
+      {error === "instructor-exists" && (
+        <p className="text-sm text-destructive">An account with that email already exists.</p>
+      )}
+      {error === "announcement" && (
+        <p className="text-sm text-destructive">Title and message are both required.</p>
+      )}
+      {instructorCreated === "1" && setupLink && (
+        <div className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+          <p>Instructor account created. Setup email sent (or logged to the server console in dev).</p>
+          <p className="mt-1 break-all">
+            Share this one-time setup link if needed (expires in 1 hour):{" "}
+            <a href={setupLink} className="underline">
+              {setupLink}
+            </a>
+          </p>
+        </div>
+      )}
 
-      <nav className="flex gap-4 text-sm font-medium underline">
+      <nav className="flex flex-wrap gap-4 text-sm font-medium underline">
         <a href="#reporting">Reporting</a>
         <a href="#courses">Courses</a>
         <a href="#users">Users</a>
+        <a href="#announcements">
+          Announcements{pendingAnnouncements.length > 0 ? ` (${pendingAnnouncements.length})` : ""}
+        </a>
         <a href="#payments">Payments</a>
         <a href="#certificates">Certificates</a>
       </nav>
@@ -178,6 +223,164 @@ export default async function AdminDashboardPage({
             </div>
           ))}
         </div>
+
+        <form
+          action={createInstructorAction}
+          className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-4"
+        >
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Create instructor account
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Instructors don&rsquo;t sign up themselves - only an admin can
+            create their account. They&rsquo;ll set their own password via a
+            one-time link, then log in at{" "}
+            <span className="font-medium">/instructor/login</span>.
+          </p>
+          <input
+            name="name"
+            placeholder="Full name"
+            required
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          />
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            className="w-fit rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground"
+          >
+            Create instructor
+          </button>
+        </form>
+      </section>
+
+      {/* --- Announcements --- */}
+      <section id="announcements" className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Announcements
+        </h2>
+
+        {pendingAnnouncements.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase text-accent-hover">
+              Pending your approval ({pendingAnnouncements.length})
+            </p>
+            {pendingAnnouncements.map((a) => (
+              <div key={a.id} className="flex flex-col gap-1 rounded-lg border border-accent/40 bg-accent/5 p-3">
+                <p className="text-sm font-medium">
+                  {a.title} — {a.course?.title ?? "Platform-wide"}
+                </p>
+                <p className="text-xs text-muted-foreground">by {a.author.name}</p>
+                <p className="text-sm text-foreground/80">{a.message}</p>
+                {a.link && (
+                  <a href={a.link} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+                    {a.link}
+                  </a>
+                )}
+                <div className="mt-1 flex gap-2">
+                  <form action={approveAnnouncementAction}>
+                    <input type="hidden" name="announcementId" value={a.id} />
+                    <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground">
+                      Approve
+                    </button>
+                  </form>
+                  <form action={rejectAnnouncementAction}>
+                    <input type="hidden" name="announcementId" value={a.id} />
+                    <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-destructive">
+                      Reject
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            All announcements ({announcements.length})
+          </p>
+          {announcements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">None yet.</p>
+          ) : (
+            announcements.map((a) => (
+              <div key={a.id} className="flex flex-col gap-1 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {a.title} — {a.course?.title ?? "Platform-wide"}
+                  </span>
+                  <span
+                    className={`text-xs font-medium ${
+                      a.status === "APPROVED"
+                        ? "text-success"
+                        : a.status === "REJECTED"
+                          ? "text-destructive"
+                          : "text-accent-hover"
+                    }`}
+                  >
+                    {a.status}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">by {a.author.name}</p>
+                <form action={deleteAnnouncementAdminAction}>
+                  <input type="hidden" name="announcementId" value={a.id} />
+                  <button type="submit" className="w-fit text-xs text-destructive underline">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            ))
+          )}
+        </div>
+
+        <form
+          action={createAdminAnnouncementAction}
+          className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-4"
+        >
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Post an announcement (auto-approved)
+          </p>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+            Course
+            <select name="courseId" className="rounded-lg border border-border px-3 py-2 text-sm" defaultValue="">
+              <option value="">Platform-wide (all students)</option>
+              {publishedCourses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            name="title"
+            placeholder="Title"
+            required
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          />
+          <textarea
+            name="message"
+            placeholder="Message"
+            required
+            rows={3}
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          />
+          <input
+            name="link"
+            placeholder="Link (optional)"
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            className="w-fit rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground"
+          >
+            Post announcement
+          </button>
+        </form>
       </section>
 
       {/* --- Payments --- */}
