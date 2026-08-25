@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { roleHome } from "@/lib/role-home";
@@ -18,9 +19,22 @@ export async function loginAction(
     return { error: "Email and password are required." };
   }
 
-  // signIn(..., { redirect: false }) returns the callback redirect URL as a
-  // string; a failed attempt carries an "error" query param on that URL.
-  const redirectUrl = await signIn("credentials", { email, password, redirect: false });
+  // signIn(..., { redirect: false }) is documented to return the callback
+  // URL as a string with an "error" query param on a failed attempt - but
+  // in practice (confirmed via a real Playwright run, not just reading the
+  // docs) a bad credentials attempt THROWS a CredentialsSignin instead when
+  // called this way from a Server Action. Both paths are handled: the
+  // thrown case is the one that actually happens; the URL-param check
+  // stays as a defensive fallback in case that ever changes.
+  let redirectUrl: string | undefined;
+  try {
+    redirectUrl = await signIn("credentials", { email, password, redirect: false });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return { error: "Invalid email or password." };
+    }
+    throw err;
+  }
   const failed =
     typeof redirectUrl === "string" &&
     new URL(redirectUrl, process.env.NEXTAUTH_URL ?? "http://localhost:3000").searchParams.get(

@@ -3,9 +3,20 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 // DigitalOcean Spaces (S3-compatible) per TRD §1.2/§4.2. Falls back to
-// writing under public/uploads in dev when Spaces credentials aren't set,
-// so certificate/receipt generation is fully testable without real
+// writing to a local dev-only directory when Spaces credentials aren't
+// set, so certificate/receipt generation is fully testable without real
 // storage creds. Never used once STORAGE_* env vars are present.
+//
+// This directory is deliberately NOT under public/ and is served through
+// app/api/uploads/[...path]/route.ts instead of Next's static file
+// handling. Found via a real Playwright E2E run: `next start` (Turbopack
+// production mode) appears to snapshot public/ at build time and does not
+// serve files written there at runtime after the server starts - exactly
+// what certificate/receipt generation does. A file written before the
+// last build/restart 200s; the identical setup written after 404s. This
+// only affects the local dev fallback - real deployments use Spaces,
+// served by DigitalOcean directly, not by this Next.js process at all.
+export const LOCAL_STORAGE_DIR = path.join(process.cwd(), ".local-uploads");
 const hasRealStorage = Boolean(
   process.env.STORAGE_ENDPOINT &&
     process.env.STORAGE_KEY &&
@@ -54,8 +65,8 @@ export async function uploadFile(
     }
   }
 
-  const filePath = path.join(process.cwd(), "public", "uploads", key);
+  const filePath = path.join(LOCAL_STORAGE_DIR, key);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, body);
-  return `/uploads/${key}`;
+  return `/api/uploads/${key}`;
 }

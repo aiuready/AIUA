@@ -40,5 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local dev fallback for lib/storage.ts when Spaces creds aren't set
-/public/uploads/
+# local dev fallback for lib/storage.ts when Spaces creds aren't set -
+# served via app/api/uploads/[...path]/route.ts, not public/ static serving
+/.local-uploads/
+
+# Playwright E2E - generated output, not source
+/e2e-report/
+/test-results/
+/e2e/screenshots/*.png
+/playwright-report/
+/.playwright-mcp/

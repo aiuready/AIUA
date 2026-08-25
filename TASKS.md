@@ -4,16 +4,46 @@ Tracks everything left after the initial scaffold (commit `7783461`). Checked
 off in commit order as each is finished for real (not just stubbed) and
 verified (build/lint/manual check). Unchecked = not started.
 
-**Since this file's last full pass**, three more things landed that
+**Since this file's last full pass**, several more things landed that
 predate its phase structure below (see git log for exact commits):
 a full design system + marketing site (shared header/footer, `components/ui/*`,
 brand tokens in `globals.css`, expanded home/about/courses pages) applied
 across the whole product; a real production bug fix (Auth.js `trustHost`
 was missing, breaking every sign-in/session read under `next start` -
-confirmed via server logs and fixed); and the course-detail Enroll CTA
+confirmed via server logs and fixed); the course-detail Enroll CTA
 was simplified to a single "Enroll now" button with server-side gateway
 auto-selection (`lib/payments/select-provider.ts`) instead of exposing
-Paystack/Flutterwave as a learner-facing choice.
+Paystack/Flutterwave as a learner-facing choice; a `/profile` page (PRD §3.1);
+and a full Playwright E2E suite (`e2e/`, `npm run test:e2e`) that drove
+every major flow through a real browser for the first time and found four
+more real bugs, all fixed:
+
+- **Login/signup crashed on any `signIn()` failure.** `CredentialsSignin`
+  throws from a Server Action call rather than returning a URL with an
+  `error` param as the (misleading) docs suggest - a wrong password
+  crashed straight to the generic error boundary instead of showing
+  "Invalid email or password." Fixed in both `login/actions.ts` and
+  `signup/actions.ts` with a proper try/catch on `AuthError`.
+- **Server Actions default to a 1MB body limit**, silently 413-ing any
+  profile photo upload between 1-2MB even though the app's own validation
+  advertised a 2MB cap. Raised via `experimental.serverActions.bodySizeLimit`
+  in `next.config.ts`.
+- **`next start` (Turbopack production mode) doesn't serve files written
+  to `public/` after the server starts** - certs/receipts generated at
+  runtime 404'd. Moved the local dev-storage fallback out of `public/`
+  entirely into `.local-uploads/`, served via a dedicated
+  `app/api/uploads/[...path]/route.ts` instead of relying on Next's
+  static handling. Real deployments (Spaces) were never affected.
+- **Mobile nav menu had no backdrop scrim** and visually collided with
+  the hero content beneath it - only visible by actually screenshotting
+  the open menu, not from reading the code. Root cause: the header's
+  `backdrop-blur` creates a new CSS containing block for `position:fixed`
+  descendants, trapping the scrim inside the header's own ~64px box.
+  Fixed by portaling the whole mobile nav dropdown to `document.body`.
+
+All 33 E2E tests pass against the real running app + real MySQL dev DB
+(not mocked). See `e2e/*.spec.ts`; screenshots land in `e2e/screenshots/`
+(gitignored, regenerate with `npm run test:e2e`).
 
 ## 0. Dev environment / infra
 
@@ -104,7 +134,7 @@ Paystack/Flutterwave as a learner-facing choice.
 - [x] Loading + error states — `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx` added as baseline boundaries (Webflow §8); route-specific loading.tsx overrides for slower pages (course catalog, admin) are a possible follow-up, not required for correctness
 - [x] Empty states — every list in the app already had a "No X yet" message from when each page was built (catalog, dashboard, certificates, purchases, instructor courses, grading queue, admin sections)
 - [ ] Error monitoring/logging (e.g. Sentry) — **needs an account/DSN I don't have**; not attempted
-- [ ] Responsive QA pass (mobile/tablet/desktop) — only verified functionally (curl, DB state), never visually in a browser at real viewport widths; the CSS is written mobile-first per Webflow §1 but unverified visually
+- [x] Responsive QA pass — mobile (390px) verified for real via Playwright: no horizontal overflow on key pages, hamburger menu open/close + navigation, logged-in/out states. Found and fixed a real bug in the process (mobile nav backdrop scrim, see top of file). Tablet breakpoint not separately checked; desktop checked via the same screenshots
 - [ ] Basic pen-test checklist — not run; would need a defined checklist and either manual review or a scanning tool
 
 ## 10. Deployment (TRD §4)
