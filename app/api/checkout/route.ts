@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { initializePaystackTransaction } from "@/lib/payments/paystack";
 import { initializeFlutterwavePayment } from "@/lib/payments/flutterwave";
+import { selectPaymentProvider } from "@/lib/payments/select-provider";
 
 // POST /api/checkout - form target from the course detail Enroll CTA.
 // Creates a PENDING Payment and redirects to the chosen gateway's hosted
@@ -19,14 +20,30 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const courseId = String(formData.get("courseId") ?? "");
-  const provider = String(formData.get("provider") ?? "");
-  if (!courseId || (provider !== "PAYSTACK" && provider !== "FLUTTERWAVE")) {
+  if (!courseId) {
     return NextResponse.json({ error: "invalid request" }, { status: 400 });
   }
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course || course.status !== "PUBLISHED") {
     return NextResponse.json({ error: "course not available" }, { status: 404 });
+  }
+
+  // The Enroll button doesn't ask which gateway to use - that's an
+  // implementation detail, not a learner decision (PRD §3.3: "platform
+  // routes by availability"). An explicit `provider` field still works if
+  // ever sent (e.g. an internal test tool), but nothing student-facing
+  // sends one anymore.
+  const requestedProvider = String(formData.get("provider") ?? "");
+  const provider =
+    requestedProvider === "PAYSTACK" || requestedProvider === "FLUTTERWAVE"
+      ? requestedProvider
+      : selectPaymentProvider();
+  if (!provider) {
+    return NextResponse.redirect(
+      new URL(`/courses/${course.slug}?checkout=unavailable`, req.url),
+      303
+    );
   }
 
   const existing = await prisma.enrollment.findUnique({

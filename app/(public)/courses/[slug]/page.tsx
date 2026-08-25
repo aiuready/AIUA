@@ -15,7 +15,7 @@ export default async function CourseDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: "error" | "unavailable" }>;
 }) {
   const { slug } = await params;
   const { checkout } = await searchParams;
@@ -77,18 +77,10 @@ export default async function CourseDetailPage({
               Log in to enroll
             </ButtonLink>
           ) : session.user.role === "STUDENT" ? (
-            <form action="/api/checkout" method="POST" className="flex gap-2">
+            <form action="/api/checkout" method="POST">
               <input type="hidden" name="courseId" value={course.id} />
-              <button type="submit" name="provider" value="PAYSTACK" className={buttonVariants({ size: "sm" })}>
-                Paystack
-              </button>
-              <button
-                type="submit"
-                name="provider"
-                value="FLUTTERWAVE"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Flutterwave
+              <button type="submit" className={buttonVariants({ size: "sm" })}>
+                Enroll now
               </button>
             </form>
           ) : (
@@ -99,6 +91,11 @@ export default async function CourseDetailPage({
         {checkout === "error" && (
           <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             Something went wrong starting checkout. Please try again.
+          </p>
+        )}
+        {checkout === "unavailable" && (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            Enrollment payment isn&rsquo;t available right now. Please try again shortly.
           </p>
         )}
 
