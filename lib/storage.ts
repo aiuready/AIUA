@@ -16,7 +16,19 @@ import path from "node:path";
 // last build/restart 200s; the identical setup written after 404s. This
 // only affects the local dev fallback - real deployments use Spaces,
 // served by DigitalOcean directly, not by this Next.js process at all.
-export const LOCAL_STORAGE_DIR = path.join(process.cwd(), ".local-uploads");
+//
+// On Vercel specifically (deployed 2026-08 as a temporary host pending
+// the company's own infra, per user decision - storage intentionally
+// left unconfigured for that first deploy): process.cwd() is read-only,
+// so writing there wouldn't just fail to persist, it would throw and take
+// checkout/certificate-issuance down with it. /tmp is the one writable
+// path on Vercel, so use that there - it's still ephemeral/per-instance
+// (a file written by one invocation may 404 from another, or vanish on
+// redeploy), which is the accepted, communicated trade-off of skipping
+// real storage for now, not a new failure mode.
+export const LOCAL_STORAGE_DIR = process.env.VERCEL
+  ? path.join("/tmp", "aiua-uploads")
+  : path.join(process.cwd(), ".local-uploads");
 const hasRealStorage = Boolean(
   process.env.STORAGE_ENDPOINT &&
     process.env.STORAGE_KEY &&
@@ -66,7 +78,15 @@ export async function uploadFile(
   }
 
   const filePath = path.join(LOCAL_STORAGE_DIR, key);
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, body);
+  try {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, body);
+  } catch (err) {
+    // Same principle as the Spaces-failure catch above: a broken/read-only
+    // local write must not take down the caller (webhook completion,
+    // certificate issuance, profile update). The returned URL will 404,
+    // but enrollment/completion/profile-save itself still succeeds.
+    console.error("uploadFile: local write failed:", err);
+  }
   return `/api/uploads/${key}`;
 }
