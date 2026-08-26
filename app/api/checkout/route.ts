@@ -29,6 +29,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "course not available" }, { status: 404 });
   }
 
+  // Verification gates enrollment specifically, not login/browsing - see
+  // app/(auth)/signup/actions.ts for why. Session/JWT doesn't carry this
+  // (it's not embedded at sign-in time and can change after), so it's
+  // checked fresh here, same reasoning as the isActive re-check in
+  // lib/require-role.ts.
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerifiedAt: true },
+  });
+  if (!user?.emailVerifiedAt) {
+    return NextResponse.redirect(
+      new URL(`/courses/${course.slug}?checkout=verify-email`, req.url),
+      303
+    );
+  }
+
   // The Enroll button doesn't ask which gateway to use - that's an
   // implementation detail, not a learner decision (PRD §3.3: "platform
   // routes by availability"). An explicit `provider` field still works if

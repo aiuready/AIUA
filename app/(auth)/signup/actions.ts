@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
+import { sendVerificationEmail } from "@/lib/send-verification-email";
 
 const schema = z.object({
   name: z.string().min(2, "Name is too short."),
@@ -37,8 +38,14 @@ export async function signupAction(
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.create({
-    data: { name, email, passwordHash, role: "STUDENT" },
+    data: { name, email, passwordHash, role: "STUDENT" }, // emailVerifiedAt stays null
   });
+
+  // Sign-in still happens immediately below (don't block first login on
+  // verification - PRD doesn't require that, and it costs conversion for
+  // no real benefit here). Verification instead gates the one action that
+  // actually matters: enrolling/paying (app/api/checkout/route.ts).
+  await sendVerificationEmail(email);
 
   // See app/(auth)/login/actions.ts for why this is wrapped in try/catch -
   // a failed signIn() throws in practice (confirmed via a real Playwright
@@ -61,5 +68,5 @@ export async function signupAction(
     return { error: "Account created — please log in." };
   }
 
-  redirect("/dashboard");
+  redirect("/dashboard?verifyEmail=1");
 }

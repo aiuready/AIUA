@@ -3,12 +3,23 @@ import { auth } from "@/auth";
 import { requireRole } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { ProgressBar } from "@/components/progress-bar";
+import { resendVerificationEmailAction } from "./actions";
 
 // Student home: continue-learning card + enrolled courses list, quick
 // links to certificates/purchases (Webflow §5.1).
-export default async function StudentDashboardPage() {
+export default async function StudentDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ verified?: string; verifyEmail?: string }>;
+}) {
   await requireRole(["STUDENT"]);
   const session = await auth();
+  const { verified, verifyEmail } = await searchParams;
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: session!.user.id },
+    select: { emailVerifiedAt: true },
+  });
 
   const enrollments = await prisma.enrollment.findMany({
     where: { userId: session!.user.id, status: { in: ["ACTIVE", "COMPLETED"] } },
@@ -35,6 +46,32 @@ export default async function StudentDashboardPage() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-4 py-10 sm:max-w-2xl">
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+
+      {verified === "1" && (
+        <p className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+          Email verified — you can now enroll in courses.
+        </p>
+      )}
+      {verified === undefined && verifyEmail === "invalid" && (
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          That verification link is invalid or has expired. Request a new one below.
+        </p>
+      )}
+      {verifyEmail === "sent" && (
+        <p className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+          Verification email sent — check your inbox.
+        </p>
+      )}
+      {!user.emailVerifiedAt && verifyEmail !== "sent" && (
+        <div className="flex flex-col gap-2 rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent-hover sm:flex-row sm:items-center sm:justify-between">
+          <span>Verify your email to enroll in courses.</span>
+          <form action={resendVerificationEmailAction}>
+            <button type="submit" className="font-medium underline">
+              Resend verification email
+            </button>
+          </form>
+        </div>
+      )}
 
       {continueLearning ? (
         <Link

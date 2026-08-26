@@ -90,6 +90,7 @@ model User {
   bio           String?   @db.Text        // instructors
   photoUrl      String?
   isActive      Boolean   @default(true)  // admin deactivate (PRD §2 Admin "manage ... users")
+  emailVerifiedAt DateTime?              // null = unverified; set on /api/verify-email/[token]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

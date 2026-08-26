@@ -35,12 +35,13 @@ async function main() {
   const studentPassword = await bcrypt.hash("student12345", 10);
   await prisma.user.upsert({
     where: { email: "student@aiua.africa" },
-    update: {},
+    update: { emailVerifiedAt: new Date() }, // ensure re-runs on an existing DB stay verified too
     create: {
       email: "student@aiua.africa",
       passwordHash: studentPassword,
       name: "Chidi Okafor",
       role: Role.STUDENT,
+      emailVerifiedAt: new Date(), // pre-verified so seeded dev/test flows aren't blocked by the checkout gate
     },
   });
 

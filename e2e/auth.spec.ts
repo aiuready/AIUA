@@ -11,7 +11,9 @@ test.describe("Auth", () => {
     await prisma.$disconnect();
   });
 
-  test("signup creates a real account and lands on the student dashboard", async ({ page }) => {
+  test("signup creates a real account, sends a verification email, and lands on the student dashboard", async ({
+    page,
+  }) => {
     await page.goto("/signup");
     await page.getByLabel("Name").fill("E2E Test Student");
     await page.getByLabel("Email").fill(testEmail);
@@ -19,12 +21,46 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /create account/i }).click();
     await page.waitForLoadState("networkidle");
 
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard\?verifyEmail=1$/);
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByText(/verify your email to enroll/i)).toBeVisible();
 
     const created = await prisma.user.findUnique({ where: { email: testEmail } });
     expect(created?.role).toBe("STUDENT");
     expect(created?.isActive).toBe(true);
+    expect(created?.emailVerifiedAt).toBeNull();
+  });
+
+  test("checkout is blocked until email is verified, then the real verification link unblocks it", async ({
+    page,
+  }) => {
+    await loginAs(page, testEmail, "e2epassword123");
+
+    await page.goto("/courses/ai-foundations");
+    await page.getByRole("button", { name: /enroll now/i }).click();
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveURL(/checkout=verify-email/);
+    await expect(page.getByText(/verify your email before enrolling/i)).toBeVisible();
+
+    // No orphaned Payment row from the blocked attempt.
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: testEmail } });
+    expect(await prisma.payment.count({ where: { userId: user.id } })).toBe(0);
+
+    // Use the real signed token, same mechanism the emailed link uses -
+    // proves the token/route logic, not just the DB flag.
+    const { createVerifyEmailToken } = await import("../lib/reset-token");
+    const token = createVerifyEmailToken(testEmail);
+    await page.goto(`/api/verify-email/${token}`);
+    await expect(page).toHaveURL(/\/dashboard\?verified=1$/);
+    await expect(page.getByText(/email verified/i)).toBeVisible();
+    await expect(page.getByText(/verify your email to enroll/i)).toHaveCount(0);
+
+    const verified = await prisma.user.findUniqueOrThrow({ where: { email: testEmail } });
+    expect(verified.emailVerifiedAt).not.toBeNull();
+
+    // A stale/garbage token must not verify anything.
+    await page.goto("/api/verify-email/not-a-real-token");
+    await expect(page).toHaveURL(/verifyEmail=invalid/);
   });
 
   test("logging in with that new account works, and logging out returns to a public state", async ({

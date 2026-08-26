@@ -15,7 +15,7 @@ export default async function CourseDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ checkout?: "error" | "unavailable" }>;
+  searchParams: Promise<{ checkout?: "error" | "unavailable" | "verify-email" }>;
 }) {
   const { slug } = await params;
   const { checkout } = await searchParams;
@@ -96,6 +96,15 @@ export default async function CourseDetailPage({
         {checkout === "unavailable" && (
           <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             Enrollment payment isn&rsquo;t available right now. Please try again shortly.
+          </p>
+        )}
+        {checkout === "verify-email" && (
+          <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent-hover">
+            Verify your email before enrolling —{" "}
+            <a href="/dashboard" className="font-medium underline">
+              resend the link from your dashboard
+            </a>
+            .
           </p>
         )}
 
