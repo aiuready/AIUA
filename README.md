@@ -1,8 +1,13 @@
 # AI University Africa — Phase 2
 
 Multi-role LMS platform (student / instructor / admin) at **aiuready.africa**.
-Single Next.js (App Router, TypeScript) app, Prisma over MySQL 8, deployed as
-a long-running container co-located with the DB on DigitalOcean.
+Single Next.js (App Router, TypeScript) app, Prisma over Postgres, currently
+deployed on **Render's free tier** (app + Postgres) as a temporary, $0 host
+pending the company's own DigitalOcean/MySQL infra — see the note at the top
+of [`prisma/schema.prisma`](./prisma/schema.prisma). The original TRD target
+was MySQL 8 co-located on DigitalOcean; Render doesn't offer managed MySQL,
+so Postgres was substituted (2026-08-26 user decision) - the data model
+itself is unchanged, no MySQL-only native types were in use.
 
 **Spec docs (source of truth) live in [`docs/`](./docs):**
 
@@ -20,9 +25,11 @@ not the source.
 
 ## Stack
 
-Next.js 16 (App Router) · **Prisma 6** (pinned — see below) · MySQL 8 ·
-Auth.js (Credentials) · Tailwind CSS 4 · Paystack + Flutterwave · pdf-lib ·
-DigitalOcean Spaces (S3-compatible via `@aws-sdk/client-s3`) · lucide-react.
+Next.js 16 (App Router) · **Prisma 6** (pinned — see below) · **Postgres 16**
+(temporary — see above) · Auth.js (Credentials) · Tailwind CSS 4 · Paystack +
+Flutterwave · pdf-lib · S3-compatible object storage via `@aws-sdk/client-s3`
+(DigitalOcean Spaces / Cloudflare R2 / AWS S3 — unconfigured on the current
+Render deploy, see `lib/storage.ts`) · lucide-react.
 
 **Prisma is pinned to 6.x, not the latest 7.x** — Prisma 7 removed inline
 `datasource { url = env(...) }` support in favor of a driver-adapter config,
@@ -34,7 +41,7 @@ over in. Revisit deliberately if the project ever intentionally upgrades.
 ```bash
 npm install
 cp .env.example .env      # DATABASE_URL, gateway/storage secrets - see below
-docker compose up -d      # local MySQL 8 (see docker-compose.yml)
+docker compose up -d      # local Postgres 16 (see docker-compose.yml)
 npx prisma migrate dev
 npm run seed               # admin/instructor/student@aiua.africa test accounts
 npm run dev
@@ -48,10 +55,27 @@ blank in `.env` for local dev on purpose — the code degrades gracefully
 without them (checkout fails cleanly with `?checkout=error`, storage/email
 fall back to local disk / console log). Fill them in for staging/prod.
 
+**Known issue on some Windows + Docker Desktop setups:** the Next.js/Prisma
+process running natively on Windows may fail to authenticate against the
+container over the host-mapped port (`127.0.0.1:5432`) with a password
+error, even though the credentials are correct — confirmed on this machine
+by connecting successfully from *inside* the Docker network with the exact
+same credentials, which ruled out a real auth problem. If `npm run dev` /
+`prisma migrate dev` / `npm run seed` fail with a password error but
+`docker exec aiua_postgres psql -U aiua -d aiua` works fine, run the
+DB-touching command from inside a throwaway container on the same network
+instead:
+
+```bash
+docker run --rm --network aiua_default -v "$PWD:/app" -w /app \
+  -e DATABASE_URL="postgresql://aiua:aiua_dev@postgres:5432/aiua" \
+  node:20 sh -c "npm install --no-save prisma@6.19.3 tsx bcryptjs @prisma/client && npx <your prisma/tsx command>"
+```
+
 ## Testing
 
 `e2e/` is a real Playwright suite (not mocked) that drives the actual app
-against the real MySQL dev DB — 33 tests covering the public site, auth,
+against the real Postgres dev DB — 33 tests covering the public site, auth,
 every role's dashboard, the full learning→quiz→certificate loop, payments,
 and mobile/responsive behavior, plus visual screenshots.
 

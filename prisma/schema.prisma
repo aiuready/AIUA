@@ -1,5 +1,13 @@
 // AI University Africa - Phase 2 Prisma schema
-// Datasource: MySQL 8 (managed, co-located with app on DigitalOcean)
+// Datasource: PostgreSQL, on Render's free managed Postgres, paired with a
+// Render Web Service for the app - both free tier. This is a deliberate,
+// temporary deviation from the TRD's original MySQL 8 / DigitalOcean plan
+// (2026-08-26, user decision): Render doesn't offer managed MySQL, and
+// this is meant to be free hosting until the company sets up its own
+// infra. The data model itself is unchanged - every field here maps
+// cleanly to both engines (no MySQL-only native types were in use), so
+// switching back to MySQL later is just this datasource block + a fresh
+// migration, not a schema rewrite.
 // Generator: Prisma Client (TypeScript)
 
 generator client {
@@ -7,7 +15,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -1,24 +1,30 @@
-# Local dev only. Production is DigitalOcean Managed MySQL, co-located with
-# the app (TRD §4) - this just mirrors the same MySQL 8 engine locally.
+# Local dev only. Production is Render's free managed Postgres (temporary,
+# 2026-08-26 user decision, pending the company's own DigitalOcean/MySQL
+# infra per the original TRD) - this mirrors the same Postgres engine
+# locally so dev/prod stay in parity.
 services:
-  mysql:
-    image: mysql:8
-    container_name: aiua_mysql
+  postgres:
+    image: postgres:16
+    container_name: aiua_postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: aiua_dev_root
-      MYSQL_DATABASE: aiua
-      MYSQL_USER: aiua
-      MYSQL_PASSWORD: aiua_dev
+      POSTGRES_DB: aiua
+      POSTGRES_USER: aiua
+      POSTGRES_PASSWORD: aiua_dev
+      # md5, not the postgres:16 image's scram-sha-256 default - worked
+      # around a P1000 auth failure from Prisma's Windows engine that
+      # produced no server-side log entry at all (never got that far).
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - aiua_mysql_data:/var/lib/mysql
+      - aiua_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-paiua_dev_root"]
+      test: ["CMD-SHELL", "pg_isready -U aiua -d aiua"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  aiua_mysql_data:
+  aiua_postgres_data:
