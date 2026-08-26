@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { formatNaira } from "@/lib/money";
 import {
   setCourseStatusAction,
-  updateUserRoleAction,
   toggleUserActiveAction,
   refundPaymentAction,
   revokeCertificateAction,
@@ -199,20 +198,11 @@ export default async function AdminDashboardPage({
                 <p className="text-sm font-medium">
                   {u.name} {!u.isActive && <span className="text-destructive">(deactivated)</span>}
                 </p>
-                <p className="text-xs text-muted-foreground">{u.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {u.email} · {u.role}
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                <form action={updateUserRoleAction} className="flex items-center gap-2">
-                  <input type="hidden" name="userId" value={u.id} />
-                  <select name="role" defaultValue={u.role} className="rounded-lg border border-border px-3 py-2 text-xs">
-                    <option value="STUDENT">Student</option>
-                    <option value="INSTRUCTOR">Instructor</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                  <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
-                    Update
-                  </button>
-                </form>
                 <form action={toggleUserActiveAction}>
                   <input type="hidden" name="userId" value={u.id} />
                   <button type="submit" className="rounded-lg border border-border px-3 py-2 text-xs font-medium">

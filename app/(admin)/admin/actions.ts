@@ -23,21 +23,6 @@ export async function setCourseStatusAction(formData: FormData): Promise<void> {
   redirect("/admin?saved=1#courses");
 }
 
-// Role upgrade path (PRD §2: "instructors are approved/upgraded by an
-// admin"). Also the only place a role changes post-signup.
-export async function updateUserRoleAction(formData: FormData): Promise<void> {
-  await requireRole(["ADMIN"]);
-  const userId = String(formData.get("userId"));
-  const role = String(formData.get("role"));
-  if (!["STUDENT", "INSTRUCTOR", "ADMIN"].includes(role)) redirect("/admin");
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: { role: role as "STUDENT" | "INSTRUCTOR" | "ADMIN" },
-  });
-  redirect("/admin?saved=1#users");
-}
-
 export async function toggleUserActiveAction(formData: FormData): Promise<void> {
   const session = await requireRole(["ADMIN"]);
   const userId = String(formData.get("userId"));

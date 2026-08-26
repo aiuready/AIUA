@@ -56,7 +56,7 @@ test.describe.serial("Admin dashboard", () => {
     await expect(page.getByText("E2E Throwaway User")).toBeVisible();
   });
 
-  test("changing a user's role actually persists (scoped to the exact row, not the page's first Update button)", async ({
+  test("user row shows role as read-only text, not an editable control (role-change UI was deliberately removed)", async ({
     page,
   }) => {
     await loginAs(page, SEEDED.admin.email, SEEDED.admin.password);
@@ -66,20 +66,14 @@ test.describe.serial("Admin dashboard", () => {
     // scoped past #users, not just page-wide `.first()`.
     const row = page.locator("#users div.rounded-lg").filter({ hasText: throwawayEmail });
     await expect(row).toHaveCount(1);
-    await row.getByRole("combobox").selectOption("INSTRUCTOR");
-    await row.getByRole("button", { name: "Update" }).click();
-    await page.waitForLoadState("networkidle");
+    await expect(row.getByText("STUDENT")).toBeVisible();
+    await expect(row.getByRole("combobox")).toHaveCount(0);
 
-    // The select's value after the redirect is itself server-rendered
-    // straight from the DB (defaultValue={u.role} in admin/page.tsx) -
-    // the most direct proof the update round-tripped and persisted.
-    await expect(row.getByRole("combobox")).toHaveValue("INSTRUCTOR");
-
-    const updated = await pollUntil(
-      () => prisma.user.findUniqueOrThrow({ where: { id: throwawayUserId } }),
-      (u) => u.role === "INSTRUCTOR"
-    );
-    expect(updated.role).toBe("INSTRUCTOR");
+    // The role never changes without a schema-level/DB action now -
+    // instructor accounts are created directly (createInstructorAction),
+    // not promoted from student.
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: throwawayUserId } });
+    expect(user.role).toBe("STUDENT");
   });
 
   test("deactivating and reactivating a user actually flips isActive, and login is blocked while deactivated", async ({
