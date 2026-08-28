@@ -70,7 +70,7 @@ export const ABOUT_PAGES: Record<string, AboutPageContent> = {
         roles: ["Founder / President", "Academic Director", "Operations Manager", "Marketing Lead", "Partnerships Lead"],
       },
     ],
-    note: "Interested in one of these roles, or in advising AIUA directly? Reach out at hello@aiuready.africa.",
+    note: "Interested in one of these roles, or in advising AIUA directly? Reach out at hello@aiuready.com.",
   },
 
   "advisory-council": {
@@ -82,7 +82,7 @@ export const ABOUT_PAGES: Record<string, AboutPageContent> = {
       "AIUA's growth plan leans on formal partnerships — with governments drafting national AI policy, with universities considering curriculum licensing, and with employers who need AI-ready hires faster than they can train them internally. An Advisory Council of people who've done that work already is part of how we get those partnerships right instead of guessing.",
       "We're not naming seats that aren't filled. If you work in African AI policy, education, or industry and want to help shape this from the outside, we'd genuinely like to hear from you.",
     ],
-    note: "Reach out at hello@aiuready.africa if you'd like to be part of the council.",
+    note: "Reach out at hello@aiuready.com if you'd like to be part of the council.",
   },
 
   team: {
@@ -98,7 +98,7 @@ export const ABOUT_PAGES: Record<string, AboutPageContent> = {
       { groupTitle: "Growth Team", roles: ["Content Creators", "Video Editors", "Sales Representatives", "Affiliate Managers"] },
       { groupTitle: "Technology Team", roles: ["LMS Administrator", "Automation Specialist", "Developer", "Support"] },
     ],
-    note: "Want to be one of these people? Reach out at hello@aiuready.africa.",
+    note: "Want to be one of these people? Reach out at hello@aiuready.com.",
   },
 };
 

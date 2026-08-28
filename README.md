@@ -1,13 +1,17 @@
 # AI University Africa — Phase 2
 
-Multi-role LMS platform (student / instructor / admin) at **aiuready.africa**.
+Multi-role LMS platform (student / instructor / admin), live at
+**aiuready.com** (custom domain on Render, apex canonical — `www` redirects
+to it; the underlying service also stays reachable at aiua.onrender.com).
 Single Next.js (App Router, TypeScript) app, Prisma over Postgres, currently
 deployed on **Render's free tier** (app + Postgres) as a temporary, $0 host
 pending the company's own DigitalOcean/MySQL infra — see the note at the top
 of [`prisma/schema.prisma`](./prisma/schema.prisma). The original TRD target
 was MySQL 8 co-located on DigitalOcean; Render doesn't offer managed MySQL,
 so Postgres was substituted (2026-08-26 user decision) - the data model
-itself is unchanged, no MySQL-only native types were in use.
+itself is unchanged, no MySQL-only native types were in use. Outbound email
+(verification, password reset, instructor invites) goes through Resend on
+the same domain — see `lib/email.ts`.
 
 **Spec docs (source of truth) live in [`docs/`](./docs):**
 

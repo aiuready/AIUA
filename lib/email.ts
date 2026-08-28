@@ -26,7 +26,7 @@ export async function sendEmail({
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM ?? "AIUA <no-reply@aiua.africa>",
+      from: process.env.RESEND_FROM ?? "AIUA <hello@aiuready.com>",
       to,
       subject,
       html,

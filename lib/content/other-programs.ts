@@ -179,7 +179,7 @@ export const OTHER_PROGRAMS: Record<string, OtherProgramContent> = {
       },
     ],
     ctaLabel: "Talk to us about a cohort",
-    ctaHref: "mailto:hello@aiuready.africa",
+    ctaHref: "mailto:hello@aiuready.com",
   },
 };
 

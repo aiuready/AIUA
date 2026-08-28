@@ -71,10 +71,8 @@ export function SiteFooter() {
             <li><Link href="/login" className="text-sm text-foreground/80 hover:text-foreground">Log in</Link></li>
             <li><Link href="/instructor/login" className="text-sm text-foreground/80 hover:text-foreground">Instructor login</Link></li>
           </ul>
-          {/* Placeholder contact address on the site's own domain — swap for
-              the real inbox when one exists. */}
-          <a href="mailto:hello@aiuready.africa" className="text-sm text-foreground/80 hover:text-foreground">
-            hello@aiuready.africa
+          <a href="mailto:hello@aiuready.com" className="text-sm text-foreground/80 hover:text-foreground">
+            hello@aiuready.com
           </a>
         </div>
       </div>

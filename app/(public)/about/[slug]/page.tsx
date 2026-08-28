@@ -77,7 +77,7 @@ export default async function AboutSubPage({
       {page.note && (
         <Section className="text-center">
           <a
-            href="mailto:hello@aiuready.africa"
+            href="mailto:hello@aiuready.com"
             className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
           >
             <Mail size={16} />
