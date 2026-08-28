@@ -1,11 +1,19 @@
-import { ShieldCheck, Smartphone, Wallet, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Smartphone, Wallet, ShieldCheck, Users } from "lucide-react";
 import { Section, SectionHeading } from "@/components/ui/section";
 import { ButtonLink } from "@/components/ui/button-link";
-import { ALL_SCHOOLS, SCHOOL_LABELS } from "@/lib/school-labels";
-import { SCHOOL_ICONS } from "@/lib/school-icons";
-import { SCHOOL_BLURBS } from "@/lib/school-blurbs";
+import { ABOUT_PAGES } from "@/lib/content/about";
 
 export const metadata = { title: "About" };
+
+const ABOUT_CARDS = [
+  { slug: "story", label: "Our Story", description: "Why AIUA exists, and the gap it's built to close." },
+  { slug: "vision", label: "Vision", description: "Where we're headed — a continent where AI-ready is the default." },
+  { slug: "mission", label: "Mission", description: "What every course, school, and certification is graded against." },
+  { slug: "leadership", label: "Leadership", description: "The executive structure we're building toward." },
+  { slug: "advisory-council", label: "Advisory Council", description: "The partnerships and expertise shaping AIUA from outside." },
+  { slug: "team", label: "Team Members", description: "The academic, growth, and technology teams behind the platform." },
+];
 
 export default function AboutPage() {
   return (
@@ -27,22 +35,23 @@ export default function AboutPage() {
       </Section>
 
       <Section muted>
-        <SectionHeading eyebrow="What we teach" title="Eight schools, one platform" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {ALL_SCHOOLS.map((school) => {
-            const Icon = SCHOOL_ICONS[school];
-            return (
-              <div key={school} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Icon size={20} />
-                </span>
-                <span className="font-heading text-sm font-semibold text-foreground">
-                  {SCHOOL_LABELS[school]}
-                </span>
-                <span className="text-sm text-muted-foreground">{SCHOOL_BLURBS[school]}</span>
-              </div>
-            );
-          })}
+        <SectionHeading eyebrow="Learn more" title="About AIUA" center={false} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {ABOUT_CARDS.map((card) => (
+            <Link
+              key={card.slug}
+              href={`/about/${card.slug}`}
+              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition hover:border-primary hover:shadow-sm"
+            >
+              <h3 className="font-heading text-sm font-semibold text-foreground">
+                {ABOUT_PAGES[card.slug]?.title ?? card.label}
+              </h3>
+              <p className="text-sm text-muted-foreground">{card.description}</p>
+              <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-primary">
+                Read more <ArrowRight size={14} />
+              </span>
+            </Link>
+          ))}
         </div>
       </Section>
 

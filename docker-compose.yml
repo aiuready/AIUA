@@ -17,7 +17,14 @@ services:
       POSTGRES_HOST_AUTH_METHOD: md5
       POSTGRES_INITDB_ARGS: "--auth-host=md5"
     ports:
-      - "5432:5432"
+      # Not 5432: a native Windows postgres.exe service is also bound to
+      # that port on this machine, and connections intermittently landed
+      # on it instead of this container - the real cause of the "no
+      # server-side log entry at all" mystery above (confirmed via
+      # `tasklist` against the PID holding port 5432, 2026-08-28). 5436
+      # avoids it, and avoids the other local projects' ports (Vendoor
+      # Africa 5433, CashOS 5434).
+      - "5436:5432"
     volumes:
       - aiua_postgres_data:/var/lib/postgresql/data
     healthcheck:

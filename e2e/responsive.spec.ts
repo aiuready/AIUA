@@ -4,7 +4,7 @@ import { SEEDED } from "./helpers";
 // Self-contained mobile-viewport tests - deliberately not sharing
 // helpers.ts's loginAs/logout, since those click the desktop nav's
 // always-rendered buttons, which are hidden (not just visually, but via
-// `hidden lg:flex`) at this breakpoint.
+// `hidden xl:flex`) at this breakpoint.
 test.use({ viewport: { width: 390, height: 844 } });
 
 test.describe("Mobile viewport (390px, Webflow §1 mobile-first)", () => {
@@ -33,11 +33,13 @@ test.describe("Mobile viewport (390px, Webflow §1 mobile-first)", () => {
     // backdrop-filter on the header traps position:fixed descendants
     // otherwise) - fixed/top-16 now, not absolute/top-full.
     const menu = page.locator("div.fixed.inset-x-0.top-16");
-    await expect(menu.getByRole("link", { name: "Courses", exact: true })).toBeVisible();
     await expect(menu.getByRole("link", { name: "Log in" })).toBeVisible();
     await expect(menu.getByRole("link", { name: "Sign up" })).toBeVisible();
 
-    await menu.getByRole("link", { name: "Courses", exact: true }).click();
+    // Courses/Schools is an accordion section, not a direct link - expand
+    // it, then follow its overview link.
+    await menu.getByRole("button", { name: "Courses/Schools" }).click();
+    await menu.getByRole("link", { name: "Courses/Schools overview" }).click();
     await expect(page).toHaveURL(/\/courses$/);
   });
 
